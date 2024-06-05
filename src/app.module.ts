@@ -4,6 +4,10 @@ import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import * as process from 'node:process';
+import { OrderDetailsModule } from './modules/order-details.module';
+import { OrdersModule } from './modules/orders.module';
+import { ProductsModule } from './modules/products.module';
+import { UsersModule } from './modules/users.module';
 
 @Module({
   imports: [
@@ -14,10 +18,14 @@ import * as process from 'node:process';
       port: 3306,
       username: 'root',
       password: process.env.MYSQL_ROOT_PASSWORD,
-      database: 'test2',
+      database: 'sklep',
+      entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true,
-      entities: [],
     }),
+    UsersModule,
+    ProductsModule,
+    OrdersModule,
+    OrderDetailsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
