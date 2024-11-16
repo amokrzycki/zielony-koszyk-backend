@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="pl-PL">
+<head>
+  <meta charset="utf-8">
+  <title>Potwierdzenie zamówienia</title>
+</head>
+<body>
+<p>Drogi {{customer_name}},</p>
+<p>Dziękujemy za twoje zamówienie!</p>
+<p>Numer twojego zamówienia to: <strong>{{order_id}}</strong>.</p>
+<p>Zamówiono: {{order_date}}</p>
+<p>Kwota całkowita: {{total_amount}} zł</p>
+<h3>Szczegóły zamówienia:</h3>
+<ul>
+  {{#each orderDetails}}
+    <li>{{this.product.name}} x{{this.quantity}} - {{this.price}} zł</li>
+  {{/each}}
+</ul>
+<p>Powiadomimy Cię, gdy twoje zamówienie zostanie przygotowane do wysyłki!</p>
+<p>Serdecznie pozdrawiam,<br>Zielony Koszyk!</p>
+</body>
+</html>

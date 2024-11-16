@@ -7,6 +7,7 @@ import { OrderDetail } from '../entities/order-detail.entity';
 import { User } from '../entities/user.entity';
 import { Product } from '../entities/product.entity';
 import { Statuses } from '../enums/Statuses';
+import { MailService } from './mail.service';
 
 @Injectable()
 export class OrdersService {
@@ -18,6 +19,7 @@ export class OrdersService {
     @InjectRepository(Product)
     private productsRepository: Repository<Product>,
     private dataSource: DataSource,
+    private readonly mailService: MailService,
   ) {}
 
   findAll(): Promise<Order[]> {
@@ -29,7 +31,9 @@ export class OrdersService {
   }
 
   async create(createOrderDto: CreateOrderDto): Promise<Order> {
-    return await this.dataSource.transaction(async (manager) => {
+    let savedOrder: Order;
+
+    await this.dataSource.transaction(async (manager) => {
       const order = new Order();
 
       if (createOrderDto.userId) {
@@ -70,8 +74,16 @@ export class OrdersService {
 
       order.total_amount = totalAmount;
 
-      return await manager.getRepository(Order).save(order);
+      savedOrder = await manager.getRepository(Order).save(order);
     });
+
+    try {
+      await this.mailService.sendOrderConfirmation(savedOrder);
+    } catch (error) {
+      console.error('Error sending order confirmation email:', error);
+    }
+
+    return savedOrder;
   }
 
   async update(id: number, order: Partial<Order>): Promise<Order> {

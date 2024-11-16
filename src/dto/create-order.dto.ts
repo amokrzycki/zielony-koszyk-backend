@@ -29,8 +29,6 @@ export class CreateOrderDto {
   @IsNotEmpty()
   customer_address?: string;
 
-  total_amount: number;
-
   @IsEnum(Statuses, { message: 'Invalid status' })
   status: Statuses;
 
