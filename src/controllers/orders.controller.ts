@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { OrdersService } from '../services/orders.service';
 import { Order } from '../entities/order.entity';
+import { CreateOrderDto } from '../dto/create-order.dto';
 
 @Controller('orders')
 export class OrdersController {
@@ -25,8 +26,8 @@ export class OrdersController {
   }
 
   @Post()
-  create(@Body() order: Partial<Order>): Promise<Order> {
-    return this.ordersService.create(order);
+  create(@Body() createOrderDto: CreateOrderDto): Promise<Order> {
+    return this.ordersService.create(createOrderDto);
   }
 
   @Put(':id')

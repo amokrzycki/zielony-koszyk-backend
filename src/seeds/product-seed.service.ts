@@ -2,11 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Product } from '../entities/product.entity';
-import vegatables from '../constans/vegatables';
-import fruits from '../constans/fruits';
-import others from '../constans/others';
-import seasonal from '../constans/seasonal';
-import collective from '../constans/collective';
+import vegatables from '../constants/vegatables';
+import fruits from '../constants/fruits';
+import others from '../constants/others';
+import seasonal from '../constants/seasonal';
+import collective from '../constants/collective';
 
 @Injectable()
 export class ProductSeedService {
