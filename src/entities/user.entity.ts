@@ -6,15 +6,16 @@ import {
   BeforeInsert,
 } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
+import { Roles } from '../enums/Roles';
+import { Exclude } from 'class-transformer';
 
 @Entity()
 export class User {
   @PrimaryColumn('char', { length: 36 })
   user_id: string;
-  @Column()
+  @Column({ default: Roles.USER })
   role: string;
-  @Column({ unique: true })
-  username: string;
+  @Exclude()
   @Column()
   password: string;
   @Column({ unique: true })
