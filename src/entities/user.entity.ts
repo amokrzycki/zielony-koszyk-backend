@@ -9,6 +9,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { Roles } from '../enums/Roles';
 import { Exclude } from 'class-transformer';
 
+// TODO: Rework address to be an object with street, city, state, and zip
+
 @Entity()
 export class User {
   @PrimaryColumn('char', { length: 36 })
