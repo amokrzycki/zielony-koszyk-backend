@@ -39,7 +39,7 @@ export class Order {
   @Column({ type: 'enum', enum: Statuses })
   status: Statuses;
 
-  @OneToMany(() => OrderDetail, (orderDetail) => orderDetail.order, {
+  @OneToMany(() => OrderDetail, (orderDetail) => orderDetail.order_id, {
     cascade: true,
   })
   orderDetails: OrderDetail[];

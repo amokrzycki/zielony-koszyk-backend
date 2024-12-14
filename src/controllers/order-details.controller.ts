@@ -20,8 +20,8 @@ export class OrderDetailsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string): Promise<OrderDetail> {
-    return this.orderDetailsService.findOne(+id);
+  findOne(@Param('id') id: number): Promise<OrderDetail[]> {
+    return this.orderDetailsService.findByOrderId(id);
   }
 
   @Post()

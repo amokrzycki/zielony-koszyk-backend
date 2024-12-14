@@ -26,8 +26,8 @@ export class OrdersService {
     return this.ordersRepository.find();
   }
 
-  findOne(id: number): Promise<Order> {
-    return this.ordersRepository.findOneBy({ order_id: id });
+  findOrdersByUserId(id: string): Promise<Order[]> {
+    return this.ordersRepository.findBy({ user_id: id });
   }
 
   async create(createOrderDto: CreateOrderDto): Promise<Order> {
@@ -67,10 +67,12 @@ export class OrdersService {
         if (!product) {
           throw new Error(`Product with ID ${detail.productId} not found`);
         }
+
         orderDetail.product = product;
+        orderDetail.product_name = product.name;
         orderDetail.quantity = detail.quantity;
         orderDetail.price = detail.price;
-        orderDetail.order = order;
+        orderDetail.order_id = order.order_id;
 
         totalAmount += detail.quantity * detail.price;
 

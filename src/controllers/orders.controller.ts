@@ -6,10 +6,12 @@ import {
   Param,
   Post,
   Put,
+  UseGuards,
 } from '@nestjs/common';
 import { OrdersService } from '../services/orders.service';
 import { Order } from '../entities/order.entity';
 import { CreateOrderDto } from '../dto/create-order.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('orders')
 export class OrdersController {
@@ -20,9 +22,10 @@ export class OrdersController {
     return this.ordersService.findAll();
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get(':id')
-  findOne(@Param('id') id: string): Promise<Order> {
-    return this.ordersService.findOne(+id);
+  findOrdersByUserId(@Param('id') id: string): Promise<Order[]> {
+    return this.ordersService.findOrdersByUserId(id);
   }
 
   @Post()

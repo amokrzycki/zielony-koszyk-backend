@@ -14,8 +14,8 @@ export class OrderDetailsService {
     return this.orderDetailsRepository.find();
   }
 
-  findOne(id: number): Promise<OrderDetail> {
-    return this.orderDetailsRepository.findOneBy({ order_detail_id: id });
+  findByOrderId(id: number): Promise<OrderDetail[]> {
+    return this.orderDetailsRepository.findBy({ order_id: id });
   }
 
   create(orderDetail: Partial<OrderDetail>): Promise<OrderDetail> {
