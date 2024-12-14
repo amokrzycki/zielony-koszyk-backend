@@ -8,7 +8,13 @@ export class CreateUserDto {
   @IsString()
   last_name: string;
   @IsString()
-  address: string;
+  street: string;
+  @IsString()
+  building_number: string;
+  @IsString()
+  zip: string;
+  @IsString()
+  city: string;
   @IsString()
   phone: string;
   @IsString()

@@ -16,19 +16,18 @@ export class Order {
   order_id: number;
 
   @ManyToOne(() => User, { nullable: true })
-  user: User;
+  user_id: string;
 
-  // Guest user information
-  @Column({ nullable: true })
+  @Column()
   customer_name: string;
 
-  @Column({ nullable: true })
+  @Column()
   customer_email: string;
 
-  @Column({ nullable: true })
+  @Column()
   customer_phone: string;
 
-  @Column({ nullable: true })
+  @Column()
   customer_address: string;
 
   @CreateDateColumn()

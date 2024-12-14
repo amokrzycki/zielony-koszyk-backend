@@ -9,8 +9,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { Roles } from '../enums/Roles';
 import { Exclude } from 'class-transformer';
 
-// TODO: Rework address to be an object with street, city, state, and zip
-
 @Entity()
 export class User {
   @PrimaryColumn('char', { length: 36 })
@@ -26,8 +24,14 @@ export class User {
   first_name: string;
   @Column()
   last_name: string;
-  @Column('text')
-  address: string;
+  @Column()
+  street: string;
+  @Column()
+  building_number: string;
+  @Column()
+  zip: string;
+  @Column()
+  city: string;
   @Column()
   phone: string;
   @CreateDateColumn()

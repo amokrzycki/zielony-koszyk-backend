@@ -3,7 +3,6 @@ import {
   IsEnum,
   IsNotEmpty,
   IsOptional,
-  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { Statuses } from '../enums/Statuses';
@@ -11,21 +10,17 @@ import { Type } from 'class-transformer';
 
 export class CreateOrderDto {
   @IsOptional()
-  userId?: string;
+  user_id?: string;
 
-  @ValidateIf((o) => !o.userId)
   @IsNotEmpty()
   customer_name?: string;
 
-  @ValidateIf((o) => !o.userId)
   @IsNotEmpty()
   customer_email?: string;
 
-  @ValidateIf((o) => !o.userId)
   @IsNotEmpty()
   customer_phone?: string;
 
-  @ValidateIf((o) => !o.userId)
   @IsNotEmpty()
   customer_address?: string;
 
