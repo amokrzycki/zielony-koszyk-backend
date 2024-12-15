@@ -9,6 +9,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { Roles } from '../enums/Roles';
 import { Exclude } from 'class-transformer';
 
+// TODO: Create separate address for delivery and billing
+
 @Entity()
 export class User {
   @PrimaryColumn('char', { length: 36 })
@@ -36,6 +38,8 @@ export class User {
   phone: string;
   @CreateDateColumn()
   created_at: Date;
+  @CreateDateColumn()
+  updated_at: Date;
 
   @BeforeInsert()
   generateId() {

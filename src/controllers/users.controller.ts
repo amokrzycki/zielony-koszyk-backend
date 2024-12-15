@@ -12,6 +12,7 @@ import { UsersService } from '../services/users.service';
 import { User } from '../entities/user.entity';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { UpdatePassword } from '../types/UpdatePassword';
 
 @Controller('users')
 export class UsersController {
@@ -34,11 +35,21 @@ export class UsersController {
     return this.usersService.create(user);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Put(':id')
   update(@Param('id') id: string, @Body() user: Partial<User>): Promise<User> {
     return this.usersService.update(id, user);
   }
 
+  @Put('password-change/:id')
+  updatePassword(
+    @Param('id') id: string,
+    @Body() user: UpdatePassword,
+  ): Promise<User> {
+    return this.usersService.updatePassword(id, user);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
   remove(@Param('id') id: string): Promise<void> {
     return this.usersService.remove(id);
