@@ -79,7 +79,14 @@ export class OrdersService {
         order.orderDetails.push(orderDetail);
       }
 
-      order.total_amount = totalAmount;
+      const shippingOrderDetail = new OrderDetail();
+      shippingOrderDetail.product_name = 'Dostawa';
+      shippingOrderDetail.quantity = 1;
+      shippingOrderDetail.price = 10;
+      shippingOrderDetail.order_id = order.order_id;
+      order.orderDetails.push(shippingOrderDetail);
+
+      order.total_amount = totalAmount + 10;
 
       savedOrder = await manager.getRepository(Order).save(order);
     });
