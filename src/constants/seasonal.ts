@@ -96,7 +96,7 @@ const seasonal = [
     stock_quantity: 70,
   },
   {
-    name: 'śliwka suszona bez pestki',
+    name: 'Śliwka suszona bez pestki',
     description:
       'Słodkie i soczyste suszone śliwki, idealne do ciast i deserów.',
     price: 30.0,
@@ -127,7 +127,7 @@ const seasonal = [
     stock_quantity: 150,
   },
   {
-    name: 'żurawina Suszona',
+    name: 'Żurawina Suszona',
     description:
       'Słodko-kwaśna suszona żurawina, doskonała jako dodatek do deserów i mięs.',
     price: 39.0,

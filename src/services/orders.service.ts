@@ -26,8 +26,12 @@ export class OrdersService {
     return this.ordersRepository.find();
   }
 
-  findOne(id: number): Promise<Order> {
+  async findOrderByOrderId(id: number): Promise<Order> {
     return this.ordersRepository.findOneBy({ order_id: id });
+  }
+
+  findOrdersByUserId(id: string): Promise<Order[]> {
+    return this.ordersRepository.findBy({ user_id: id });
   }
 
   async create(createOrderDto: CreateOrderDto): Promise<Order> {
@@ -36,17 +40,22 @@ export class OrdersService {
     await this.dataSource.transaction(async (manager) => {
       const order = new Order();
 
-      if (createOrderDto.userId) {
-        order.user = await manager.getRepository(User).findOne({
-          where: { user_id: createOrderDto.userId },
+      if (createOrderDto.user_id) {
+        const user = await manager.getRepository(User).findOne({
+          where: { user_id: createOrderDto.user_id },
         });
-      } else {
-        order.customer_name = createOrderDto.customer_name;
-        order.customer_email = createOrderDto.customer_email;
-        order.customer_phone = createOrderDto.customer_phone;
-        order.customer_address = createOrderDto.customer_address;
+
+        if (!user) {
+          throw new Error(`User with ID ${createOrderDto.user_id} not found`);
+        }
+
+        order.user_id = user.user_id;
       }
 
+      order.customer_name = createOrderDto.customer_name;
+      order.customer_email = createOrderDto.customer_email;
+      order.customer_phone = createOrderDto.customer_phone;
+      order.customer_address = createOrderDto.customer_address;
       order.status = createOrderDto.status as Statuses;
 
       let totalAmount = 0;
@@ -62,17 +71,26 @@ export class OrdersService {
         if (!product) {
           throw new Error(`Product with ID ${detail.productId} not found`);
         }
+
         orderDetail.product = product;
+        orderDetail.product_name = product.name;
         orderDetail.quantity = detail.quantity;
         orderDetail.price = detail.price;
-        orderDetail.order = order;
+        orderDetail.order_id = order.order_id;
 
         totalAmount += detail.quantity * detail.price;
 
         order.orderDetails.push(orderDetail);
       }
 
-      order.total_amount = totalAmount;
+      const shippingOrderDetail = new OrderDetail();
+      shippingOrderDetail.product_name = 'Dostawa';
+      shippingOrderDetail.quantity = 1;
+      shippingOrderDetail.price = 10;
+      shippingOrderDetail.order_id = order.order_id;
+      order.orderDetails.push(shippingOrderDetail);
+
+      order.total_amount = totalAmount + 10;
 
       savedOrder = await manager.getRepository(Order).save(order);
     });

@@ -10,10 +10,13 @@ export class OrderDetail {
 
   @ManyToOne(() => Order, (order) => order.orderDetails)
   @Exclude({ toPlainOnly: true })
-  order: Order;
+  order_id: number;
 
   @ManyToOne(() => Product)
   product: Product;
+
+  @Column()
+  product_name: string;
 
   @Column()
   quantity: number;

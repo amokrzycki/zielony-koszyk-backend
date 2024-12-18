@@ -4,17 +4,20 @@ import {
   Entity,
   PrimaryColumn,
   BeforeInsert,
+  OneToMany,
 } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
+import { Roles } from '../enums/Roles';
+import { Exclude } from 'class-transformer';
+import { Address } from './address.entity';
 
 @Entity()
 export class User {
   @PrimaryColumn('char', { length: 36 })
   user_id: string;
-  @Column()
+  @Column({ default: Roles.USER })
   role: string;
-  @Column({ unique: true })
-  username: string;
+  @Exclude()
   @Column()
   password: string;
   @Column({ unique: true })
@@ -23,12 +26,17 @@ export class User {
   first_name: string;
   @Column()
   last_name: string;
-  @Column('text')
-  address: string;
+  @OneToMany(() => Address, (address) => address.user, {
+    cascade: true,
+    eager: true,
+  })
+  addresses: Address[];
   @Column()
   phone: string;
   @CreateDateColumn()
   created_at: Date;
+  @CreateDateColumn()
+  updated_at: Date;
 
   @BeforeInsert()
   generateId() {
