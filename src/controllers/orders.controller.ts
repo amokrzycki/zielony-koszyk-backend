@@ -23,7 +23,13 @@ export class OrdersController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get(':id')
+  @Get('order/:id')
+  findOrderByOrderId(@Param('id') id: string): Promise<Order> {
+    return this.ordersService.findOrderByOrderId(+id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('user-orders/:id')
   findOrdersByUserId(@Param('id') id: string): Promise<Order[]> {
     return this.ordersService.findOrdersByUserId(id);
   }

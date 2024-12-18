@@ -26,6 +26,10 @@ export class OrdersService {
     return this.ordersRepository.find();
   }
 
+  async findOrderByOrderId(id: number): Promise<Order> {
+    return this.ordersRepository.findOneBy({ order_id: id });
+  }
+
   findOrdersByUserId(id: string): Promise<Order[]> {
     return this.ordersRepository.findBy({ user_id: id });
   }

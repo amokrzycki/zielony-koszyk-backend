@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class CreateUserDto {
   @IsEmail()
@@ -11,6 +11,9 @@ export class CreateUserDto {
   street: string;
   @IsString()
   building_number: string;
+  @IsOptional()
+  @IsString()
+  flat_number: string;
   @IsString()
   zip: string;
   @IsString()

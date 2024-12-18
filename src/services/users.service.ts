@@ -9,12 +9,19 @@ import { User } from '../entities/user.entity';
 import * as bcrypt from 'bcrypt';
 import { SALT_ROUNDS } from '../constants/constants';
 import { UpdatePassword } from '../types/UpdatePassword';
+import { Address } from '../entities/address.entity';
+import { UpdateAddressDto } from '../dto/update-address.dto';
+import { CreateAddressDto } from '../dto/create-address.dto';
+import { CreateUserDto } from '../dto/create-user.dto';
+import { AddressType } from '../enums/AddressType';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    @InjectRepository(Address)
+    private addressesRepository: Repository<Address>,
   ) {}
 
   findAll(): Promise<User[]> {
@@ -29,7 +36,15 @@ export class UsersService {
     return this.usersRepository.findOneBy({ user_id: id });
   }
 
-  async create(user: Partial<User>): Promise<User> {
+  async create(user: CreateUserDto): Promise<User> {
+    const existingUser = await this.usersRepository.findOneBy({
+      email: user.email,
+    });
+
+    if (existingUser) {
+      throw new BadRequestException('User with this email already exists');
+    }
+
     const hashedPassword = await bcrypt.hash(user.password, SALT_ROUNDS);
 
     const newUser = this.usersRepository.create({
@@ -41,7 +56,32 @@ export class UsersService {
 
     delete savedUser.password;
 
-    return savedUser;
+    const billingAddress = this.addressesRepository.create({
+      street: user.street,
+      city: user.city,
+      zip: user.zip,
+      building_number: user.building_number,
+      flat_number: user.flat_number,
+      type: AddressType.BILLING,
+      user: savedUser,
+    });
+
+    const deliveryAddress = this.addressesRepository.create({
+      street: user.street,
+      city: user.city,
+      zip: user.zip,
+      building_number: user.building_number,
+      flat_number: user.flat_number,
+      type: AddressType.DELIVERY,
+      user: savedUser,
+    });
+
+    await this.addressesRepository.save([billingAddress, deliveryAddress]);
+
+    return this.usersRepository.findOne({
+      where: { user_id: savedUser.user_id },
+      relations: ['addresses'],
+    });
   }
 
   async update(id: string, user: Partial<User>): Promise<User> {
@@ -87,5 +127,80 @@ export class UsersService {
 
   async remove(id: string): Promise<void> {
     await this.usersRepository.delete(id);
+  }
+
+  async addAddressToUser(
+    userId: string,
+    addressDto: CreateAddressDto,
+  ): Promise<User> {
+    const user = await this.usersRepository.findOne({
+      where: { user_id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const address = this.addressesRepository.create({ ...addressDto, user });
+    await this.addressesRepository.save(address);
+
+    return this.usersRepository.findOne({
+      where: { user_id: userId },
+      relations: ['addresses'],
+    });
+  }
+
+  async updateUserDetails(
+    userId: string,
+    addressId: number,
+    updateDto: UpdateAddressDto,
+  ): Promise<User> {
+    const user = await this.usersRepository.findOne({
+      where: { user_id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    await this.usersRepository.update(userId, {
+      phone: updateDto.phone,
+      updated_at: new Date(),
+    });
+
+    const address = await this.addressesRepository.findOne({
+      where: { address_id: addressId },
+      relations: ['user'],
+    });
+
+    if (!address || address.user.user_id !== userId) {
+      throw new NotFoundException(
+        'Address not found or does not belong to this user',
+      );
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { phone, ...filteredDto } = updateDto;
+
+    Object.assign(address, filteredDto);
+    await this.addressesRepository.save(address);
+
+    return this.usersRepository.findOne({
+      where: { user_id: userId },
+      relations: ['addresses'],
+    });
+  }
+
+  async getUserAddresses(userId: string): Promise<Address[]> {
+    const user = await this.usersRepository.findOne({
+      where: { user_id: userId },
+      relations: ['addresses'],
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user.addresses;
   }
 }

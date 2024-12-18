@@ -4,12 +4,12 @@ import {
   Entity,
   PrimaryColumn,
   BeforeInsert,
+  OneToMany,
 } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { Roles } from '../enums/Roles';
 import { Exclude } from 'class-transformer';
-
-// TODO: Create separate address for delivery and billing
+import { Address } from './address.entity';
 
 @Entity()
 export class User {
@@ -26,14 +26,11 @@ export class User {
   first_name: string;
   @Column()
   last_name: string;
-  @Column()
-  street: string;
-  @Column()
-  building_number: string;
-  @Column()
-  zip: string;
-  @Column()
-  city: string;
+  @OneToMany(() => Address, (address) => address.user, {
+    cascade: true,
+    eager: true,
+  })
+  addresses: Address[];
   @Column()
   phone: string;
   @CreateDateColumn()
