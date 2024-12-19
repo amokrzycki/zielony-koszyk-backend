@@ -1,4 +1,10 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  Relation,
+} from 'typeorm';
 import { Order } from './order.entity';
 import { Product } from './product.entity';
 import { Exclude } from 'class-transformer';
@@ -13,7 +19,7 @@ export class OrderDetail {
   order_id: number;
 
   @ManyToOne(() => Product)
-  product: Product;
+  product: Relation<Product>;
 
   @Column()
   product_name: string;
