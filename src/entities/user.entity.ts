@@ -5,6 +5,7 @@ import {
   PrimaryColumn,
   BeforeInsert,
   OneToMany,
+  Relation,
 } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { Roles } from '../enums/Roles';
@@ -30,7 +31,7 @@ export class User {
     cascade: true,
     eager: true,
   })
-  addresses: Address[];
+  addresses: Relation<Address[]>;
   @Column()
   phone: string;
   @CreateDateColumn()

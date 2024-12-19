@@ -16,7 +16,9 @@ import { UpdatePassword } from '../types/UpdatePassword';
 import { UpdateAddressDto } from '../dto/update-address.dto';
 import { Address } from '../entities/address.entity';
 import { CreateAddressDto } from '../dto/create-address.dto';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
+@ApiBearerAuth()
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}

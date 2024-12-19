@@ -12,7 +12,9 @@ import { OrdersService } from '../services/orders.service';
 import { Order } from '../entities/order.entity';
 import { CreateOrderDto } from '../dto/create-order.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
+@ApiBearerAuth()
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}

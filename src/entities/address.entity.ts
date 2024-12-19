@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  Relation,
+} from 'typeorm';
 import { User } from './user.entity';
 import { AddressType } from '../enums/AddressType';
 
@@ -29,5 +35,5 @@ export class Address {
   type: AddressType;
 
   @ManyToOne(() => User, (user) => user.addresses, { onDelete: 'CASCADE' })
-  user: User;
+  user: Relation<User>;
 }
