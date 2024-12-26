@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as FormData from 'form-data';
 import Mailgun from 'mailgun.js';
 import { Order } from '../entities/order.entity';
 import { IMailgunClient } from 'mailgun.js/Interfaces';
@@ -8,6 +7,7 @@ import Handlebars from 'handlebars';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { formatDate } from '../utils/formatDate';
+import FormData from 'form-data';
 
 @Injectable()
 export class MailService {
