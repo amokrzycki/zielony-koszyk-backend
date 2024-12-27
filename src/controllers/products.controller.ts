@@ -6,6 +6,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
 import { ProductsService } from '../services/products.service';
 import { Product } from '../entities/product.entity';
@@ -15,12 +16,31 @@ export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Get()
-  findAll(): Promise<Product[]> {
+  getAll(): Promise<Product[]> {
     return this.productsService.findAll();
   }
 
+  @Get('search/:category')
+  getByCategory(
+    @Param('category') category: string,
+    @Query('name') name?: string,
+  ): Promise<Product[]> {
+    if (!name) {
+      return this.productsService.findByCategory(category);
+    }
+    return this.productsService.findLikeNameInCategory(category, name);
+  }
+
+  @Get('search')
+  getLikeName(@Query('name') name?: string): Promise<Product[]> {
+    if (!name) {
+      return this.productsService.findAll();
+    }
+    return this.productsService.findLikeName(name);
+  }
+
   @Get(':id')
-  findOne(@Param('id') id: string): Promise<Product> {
+  getOne(@Param('id') id: string): Promise<Product> {
     return this.productsService.findOne(+id);
   }
 
