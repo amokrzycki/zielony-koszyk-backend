@@ -1,6 +1,7 @@
 import {
   Column,
   Entity,
+  JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
   Relation,
@@ -14,11 +15,18 @@ export class OrderItems {
   @PrimaryGeneratedColumn()
   order_item_id: number;
 
-  @ManyToOne(() => Orders, (order) => order.orderItems)
+  @ManyToOne(() => Orders, (order) => order.orderItems, {
+    onDelete: 'CASCADE',
+  })
   @Exclude({ toPlainOnly: true })
+  @JoinColumn({ name: 'order_id' })
   order_id: number;
 
+  @Column({ nullable: true })
+  product_id: number;
+
   @ManyToOne(() => Products)
+  @JoinColumn({ name: 'product_id' })
   product: Relation<Products>;
 
   @Column()

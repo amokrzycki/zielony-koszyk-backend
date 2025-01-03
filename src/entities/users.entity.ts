@@ -16,26 +16,35 @@ import { Addresses } from './addresses.entity';
 export class Users {
   @PrimaryColumn('char', { length: 36 })
   user_id: string;
+
   @Column({ default: Roles.USER })
   role: string;
+
   @Exclude()
   @Column()
   password: string;
+
   @Column({ unique: true })
   email: string;
+
   @Column()
   first_name: string;
+
   @Column()
   last_name: string;
+
   @OneToMany(() => Addresses, (address) => address.user, {
     cascade: true,
     eager: true,
   })
   addresses: Relation<Addresses[]>;
+
   @Column()
   phone: string;
+
   @CreateDateColumn()
   created_at: Date;
+
   @CreateDateColumn()
   updated_at: Date;
 

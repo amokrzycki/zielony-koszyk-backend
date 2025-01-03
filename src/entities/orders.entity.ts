@@ -3,6 +3,7 @@ import {
   CreateDateColumn,
   Entity,
   ManyToOne,
+  JoinColumn,
   PrimaryGeneratedColumn,
   OneToMany,
 } from 'typeorm';
@@ -15,8 +16,12 @@ export class Orders {
   @PrimaryGeneratedColumn()
   order_id: number;
 
-  @ManyToOne(() => Users, { nullable: true })
+  @Column('char', { length: 36, nullable: true })
   user_id: string;
+
+  @ManyToOne(() => Users)
+  @JoinColumn({ name: 'user_id' })
+  user: Users;
 
   @Column()
   customer_name: string;
@@ -41,6 +46,7 @@ export class Orders {
 
   @OneToMany(() => OrderItems, (orderItem) => orderItem.order_id, {
     cascade: true,
+    onDelete: 'CASCADE',
   })
   orderItems: OrderItems[];
 }

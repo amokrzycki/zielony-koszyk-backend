@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Orders } from '../entities/orders.entity';
 import { CreateOrderDto } from '../dto/create-order.dto';
 import { Users } from '../entities/users.entity';
@@ -48,8 +48,8 @@ export class OrdersService {
         if (!user) {
           throw new Error(`User with ID ${createOrderDto.user_id} not found`);
         }
-
         order.user_id = user.user_id;
+        order.user = user;
       }
 
       order.customer_name = createOrderDto.customer_name;

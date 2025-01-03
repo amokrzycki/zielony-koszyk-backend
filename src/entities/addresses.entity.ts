@@ -4,6 +4,7 @@ import {
   Column,
   ManyToOne,
   Relation,
+  JoinColumn,
 } from 'typeorm';
 import { Users } from './users.entity';
 import { AddressType } from '../enums/AddressType';
@@ -34,6 +35,10 @@ export class Addresses {
   })
   type: AddressType;
 
+  @Column('char', { length: 36, nullable: true })
+  user_id: string;
+
   @ManyToOne(() => Users, (user) => user.addresses, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'user_id' })
   user: Relation<Users>;
 }

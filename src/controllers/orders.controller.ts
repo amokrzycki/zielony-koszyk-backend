@@ -19,6 +19,7 @@ import { ApiBearerAuth } from '@nestjs/swagger';
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
+  @UseGuards(JwtAuthGuard)
   @Get()
   findAll(): Promise<Orders[]> {
     return this.ordersService.findAll();
@@ -36,11 +37,13 @@ export class OrdersController {
     return this.ordersService.findOrdersByUserId(id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post()
   create(@Body() createOrderDto: CreateOrderDto): Promise<Orders> {
     return this.ordersService.create(createOrderDto);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Put(':id')
   update(
     @Param('id') id: string,
@@ -49,6 +52,7 @@ export class OrdersController {
     return this.ordersService.update(+id, order);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
   remove(@Param('id') id: string): Promise<void> {
     return this.ordersService.remove(+id);

@@ -13,6 +13,7 @@ import { ProductsService } from '../services/products.service';
 import { Products } from '../entities/products.entity';
 import { CreateProductDto } from '../dto/create-product.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
 @Controller('products')
 export class ProductsController {
@@ -47,12 +48,14 @@ export class ProductsController {
     return this.productsService.findOne(+id);
   }
 
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Post()
   create(@Body() product: CreateProductDto): Promise<Products> {
     return this.productsService.create(product);
   }
 
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Put(':id')
   update(
@@ -62,6 +65,7 @@ export class ProductsController {
     return this.productsService.update(+id, product);
   }
 
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
   remove(@Param('id') id: string): Promise<void> {

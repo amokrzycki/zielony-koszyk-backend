@@ -18,17 +18,18 @@ import { Addresses } from '../entities/addresses.entity';
 import { CreateAddressDto } from '../dto/create-address.dto';
 import { ApiBearerAuth } from '@nestjs/swagger';
 
-@ApiBearerAuth()
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Get()
   findAll(): Promise<Users[]> {
     return this.usersService.findAll();
   }
 
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Get(':id')
   findOne(@Param('id') id: string): Promise<Users> {
@@ -40,6 +41,7 @@ export class UsersController {
     return this.usersService.create(user);
   }
 
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Put(':id')
   update(
@@ -57,12 +59,14 @@ export class UsersController {
     return this.usersService.updatePassword(id, user);
   }
 
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
   remove(@Param('id') id: string): Promise<void> {
     return this.usersService.remove(id);
   }
 
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Post(':id/address')
   addAddress(
@@ -72,6 +76,7 @@ export class UsersController {
     return this.usersService.addAddressToUser(id, addressDto);
   }
 
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Put(':id/address/:addressId')
   updateUserDetails(
@@ -82,6 +87,7 @@ export class UsersController {
     return this.usersService.updateUserDetails(userId, +addressId, updateDto);
   }
 
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Get(':id/addresses')
   getUserAddresses(@Param('id') id: string): Promise<Addresses[]> {
