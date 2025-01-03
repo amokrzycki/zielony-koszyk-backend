@@ -1,4 +1,4 @@
-import { CreateOrderDetailDto } from './create-order-detail.dto';
+import { CreateOrderItemDto } from './create-order-item.dto';
 import {
   IsEnum,
   IsNotEmpty,
@@ -29,6 +29,6 @@ export class CreateOrderDto {
 
   @IsNotEmpty()
   @ValidateNested({ each: true })
-  @Type(() => CreateOrderDetailDto)
-  orderDetails: CreateOrderDetailDto[];
+  @Type(() => CreateOrderItemDto)
+  orderDetails: CreateOrderItemDto[];
 }

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Mailgun from 'mailgun.js';
-import { Order } from '../entities/order.entity';
+import { Orders } from '../entities/orders.entity';
 import { IMailgunClient } from 'mailgun.js/Interfaces';
 import Handlebars from 'handlebars';
 import * as fs from 'node:fs';
@@ -22,7 +22,7 @@ export class MailService {
     });
   }
 
-  async sendOrderConfirmation(order: Order): Promise<void> {
+  async sendOrderConfirmation(order: Orders): Promise<void> {
     const domain = this.configService.get<string>('MAILGUN_DOMAIN');
     const fromEmail = this.configService.get<string>('MAILGUN_FROM_EMAIL');
 
@@ -39,7 +39,7 @@ export class MailService {
       order_id: order.order_id,
       order_date: formatDate(order.order_date),
       total_amount: order.total_amount,
-      orderDetails: order.orderDetails,
+      orderItems: order.orderItems,
     });
 
     const data = {

@@ -5,11 +5,11 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from '../entities/user.entity';
+import { Users } from '../entities/users.entity';
 import * as bcrypt from 'bcrypt';
 import { SALT_ROUNDS } from '../constants/constants';
 import { UpdatePassword } from '../types/UpdatePassword';
-import { Address } from '../entities/address.entity';
+import { Addresses } from '../entities/addresses.entity';
 import { UpdateAddressDto } from '../dto/update-address.dto';
 import { CreateAddressDto } from '../dto/create-address.dto';
 import { CreateUserDto } from '../dto/create-user.dto';
@@ -18,25 +18,25 @@ import { AddressType } from '../enums/AddressType';
 @Injectable()
 export class UsersService {
   constructor(
-    @InjectRepository(User)
-    private usersRepository: Repository<User>,
-    @InjectRepository(Address)
-    private addressesRepository: Repository<Address>,
+    @InjectRepository(Users)
+    private usersRepository: Repository<Users>,
+    @InjectRepository(Addresses)
+    private addressesRepository: Repository<Addresses>,
   ) {}
 
-  findAll(): Promise<User[]> {
+  findAll(): Promise<Users[]> {
     return this.usersRepository.find();
   }
 
-  findByEmail(email: string): Promise<User> {
+  findByEmail(email: string): Promise<Users> {
     return this.usersRepository.findOneBy({ email: email });
   }
 
-  findById(id: string): Promise<User> {
+  findById(id: string): Promise<Users> {
     return this.usersRepository.findOneBy({ user_id: id });
   }
 
-  async create(user: CreateUserDto): Promise<User> {
+  async create(user: CreateUserDto): Promise<Users> {
     const existingUser = await this.usersRepository.findOneBy({
       email: user.email,
     });
@@ -84,7 +84,7 @@ export class UsersService {
     });
   }
 
-  async update(id: string, user: Partial<User>): Promise<User> {
+  async update(id: string, user: Partial<Users>): Promise<Users> {
     await this.usersRepository.update(id, user);
     return this.usersRepository.findOneBy({
       user_id: id,
@@ -92,7 +92,7 @@ export class UsersService {
     });
   }
 
-  async updatePassword(id: string, user: UpdatePassword): Promise<User> {
+  async updatePassword(id: string, user: UpdatePassword): Promise<Users> {
     const userToUpdate = await this.usersRepository.findOneBy({ user_id: id });
 
     if (!userToUpdate) {
@@ -132,7 +132,7 @@ export class UsersService {
   async addAddressToUser(
     userId: string,
     addressDto: CreateAddressDto,
-  ): Promise<User> {
+  ): Promise<Users> {
     const user = await this.usersRepository.findOne({
       where: { user_id: userId },
     });
@@ -154,7 +154,7 @@ export class UsersService {
     userId: string,
     addressId: number,
     updateDto: UpdateAddressDto,
-  ): Promise<User> {
+  ): Promise<Users> {
     const user = await this.usersRepository.findOne({
       where: { user_id: userId },
     });
@@ -191,7 +191,7 @@ export class UsersService {
     });
   }
 
-  async getUserAddresses(userId: string): Promise<Address[]> {
+  async getUserAddresses(userId: string): Promise<Addresses[]> {
     const user = await this.usersRepository.findOne({
       where: { user_id: userId },
       relations: ['addresses'],

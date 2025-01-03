@@ -6,16 +6,16 @@ import {
   PrimaryGeneratedColumn,
   OneToMany,
 } from 'typeorm';
-import { User } from './user.entity';
-import { OrderDetail } from './order-detail.entity';
+import { Users } from './users.entity';
 import { Statuses } from '../enums/Statuses';
+import { OrderItems } from './order-items.entity';
 
 @Entity()
-export class Order {
+export class Orders {
   @PrimaryGeneratedColumn()
   order_id: number;
 
-  @ManyToOne(() => User, { nullable: true })
+  @ManyToOne(() => Users, { nullable: true })
   user_id: string;
 
   @Column()
@@ -39,8 +39,8 @@ export class Order {
   @Column({ type: 'enum', enum: Statuses })
   status: Statuses;
 
-  @OneToMany(() => OrderDetail, (orderDetail) => orderDetail.order_id, {
+  @OneToMany(() => OrderItems, (orderItem) => orderItem.order_id, {
     cascade: true,
   })
-  orderDetails: OrderDetail[];
+  orderItems: OrderItems[];
 }

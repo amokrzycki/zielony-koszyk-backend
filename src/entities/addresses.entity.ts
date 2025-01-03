@@ -5,11 +5,11 @@ import {
   ManyToOne,
   Relation,
 } from 'typeorm';
-import { User } from './user.entity';
+import { Users } from './users.entity';
 import { AddressType } from '../enums/AddressType';
 
 @Entity()
-export class Address {
+export class Addresses {
   @PrimaryGeneratedColumn()
   address_id: number;
 
@@ -34,6 +34,6 @@ export class Address {
   })
   type: AddressType;
 
-  @ManyToOne(() => User, (user) => user.addresses, { onDelete: 'CASCADE' })
-  user: Relation<User>;
+  @ManyToOne(() => Users, (user) => user.addresses, { onDelete: 'CASCADE' })
+  user: Relation<Users>;
 }

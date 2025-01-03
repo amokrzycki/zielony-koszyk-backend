@@ -9,7 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { OrdersService } from '../services/orders.service';
-import { Order } from '../entities/order.entity';
+import { Orders } from '../entities/orders.entity';
 import { CreateOrderDto } from '../dto/create-order.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ApiBearerAuth } from '@nestjs/swagger';
@@ -20,32 +20,32 @@ export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   @Get()
-  findAll(): Promise<Order[]> {
+  findAll(): Promise<Orders[]> {
     return this.ordersService.findAll();
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('order/:id')
-  findOrderByOrderId(@Param('id') id: string): Promise<Order> {
+  findOrderByOrderId(@Param('id') id: string): Promise<Orders> {
     return this.ordersService.findOrderByOrderId(+id);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('user-orders/:id')
-  findOrdersByUserId(@Param('id') id: string): Promise<Order[]> {
+  findOrdersByUserId(@Param('id') id: string): Promise<Orders[]> {
     return this.ordersService.findOrdersByUserId(id);
   }
 
   @Post()
-  create(@Body() createOrderDto: CreateOrderDto): Promise<Order> {
+  create(@Body() createOrderDto: CreateOrderDto): Promise<Orders> {
     return this.ordersService.create(createOrderDto);
   }
 
   @Put(':id')
   update(
     @Param('id') id: string,
-    @Body() order: Partial<Order>,
-  ): Promise<Order> {
+    @Body() order: Partial<Orders>,
+  ): Promise<Orders> {
     return this.ordersService.update(+id, order);
   }
 

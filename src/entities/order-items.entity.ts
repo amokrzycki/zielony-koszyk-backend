@@ -5,21 +5,21 @@ import {
   PrimaryGeneratedColumn,
   Relation,
 } from 'typeorm';
-import { Order } from './order.entity';
-import { Product } from './product.entity';
+import { Orders } from './orders.entity';
+import { Products } from './products.entity';
 import { Exclude } from 'class-transformer';
 
 @Entity()
-export class OrderDetail {
+export class OrderItems {
   @PrimaryGeneratedColumn()
-  order_detail_id: number;
+  order_item_id: number;
 
-  @ManyToOne(() => Order, (order) => order.orderDetails)
+  @ManyToOne(() => Orders, (order) => order.orderItems)
   @Exclude({ toPlainOnly: true })
   order_id: number;
 
-  @ManyToOne(() => Product)
-  product: Relation<Product>;
+  @ManyToOne(() => Products)
+  product: Relation<Products>;
 
   @Column()
   product_name: string;
