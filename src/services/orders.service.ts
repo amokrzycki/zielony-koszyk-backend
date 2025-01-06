@@ -77,17 +77,20 @@ export class OrdersService {
         orderDetail.quantity = detail.quantity;
         orderDetail.price = detail.price;
         orderDetail.order_id = order.order_id;
+        orderDetail.order = order;
 
         totalAmount += detail.quantity * detail.price;
 
         order.orderItems.push(orderDetail);
       }
 
+      // TODO: REWORK DELIVERY FEATURE
       const shippingOrderDetail = new OrderItems();
       shippingOrderDetail.product_name = 'Dostawa';
       shippingOrderDetail.quantity = 1;
       shippingOrderDetail.price = 10;
       shippingOrderDetail.order_id = order.order_id;
+      shippingOrderDetail.order = order;
       order.orderItems.push(shippingOrderDetail);
 
       order.total_amount = totalAmount + 10;

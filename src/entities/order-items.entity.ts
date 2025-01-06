@@ -10,17 +10,20 @@ import { Orders } from './orders.entity';
 import { Products } from './products.entity';
 import { Exclude } from 'class-transformer';
 
-@Entity()
+@Entity('order_items')
 export class OrderItems {
   @PrimaryGeneratedColumn()
   order_item_id: number;
 
+  @Column()
+  order_id: number;
+
   @ManyToOne(() => Orders, (order) => order.orderItems, {
     onDelete: 'CASCADE',
   })
-  @Exclude({ toPlainOnly: true })
+  @Exclude()
   @JoinColumn({ name: 'order_id' })
-  order_id: number;
+  order: Orders;
 
   @Column({ nullable: true })
   product_id: number;

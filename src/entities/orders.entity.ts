@@ -10,6 +10,7 @@ import {
 import { Users } from './users.entity';
 import { Statuses } from '../enums/Statuses';
 import { OrderItems } from './order-items.entity';
+import { Exclude } from 'class-transformer';
 
 @Entity()
 export class Orders {
@@ -20,6 +21,7 @@ export class Orders {
   user_id: string;
 
   @ManyToOne(() => Users)
+  @Exclude()
   @JoinColumn({ name: 'user_id' })
   user: Users;
 
@@ -44,7 +46,7 @@ export class Orders {
   @Column({ type: 'enum', enum: Statuses })
   status: Statuses;
 
-  @OneToMany(() => OrderItems, (orderItem) => orderItem.order_id, {
+  @OneToMany(() => OrderItems, (orderItem) => orderItem.order, {
     cascade: true,
     onDelete: 'CASCADE',
   })

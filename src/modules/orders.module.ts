@@ -8,9 +8,13 @@ import { Users } from '../entities/users.entity';
 import { Products } from '../entities/products.entity';
 import { MailService } from '../services/mail.service';
 import { ConfigService } from '@nestjs/config';
+import { OrderItems } from '../entities/order-items.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Orders, Users, Products]), UsersModule],
+  imports: [
+    TypeOrmModule.forFeature([Orders, Users, Products, OrderItems]),
+    UsersModule,
+  ],
   providers: [OrdersService, ConfigService, MailService],
   controllers: [OrdersController],
 })
