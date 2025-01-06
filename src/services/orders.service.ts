@@ -58,8 +58,6 @@ export class OrdersService {
       order.customer_address = createOrderDto.customer_address;
       order.status = createOrderDto.status as Statuses;
 
-      let totalAmount = 0;
-
       order.orderItems = [];
 
       for (const detail of createOrderDto.orderDetails) {
@@ -79,8 +77,6 @@ export class OrdersService {
         orderDetail.order_id = order.order_id;
         orderDetail.order = order;
 
-        totalAmount += detail.quantity * detail.price;
-
         order.orderItems.push(orderDetail);
       }
 
@@ -92,8 +88,6 @@ export class OrdersService {
       shippingOrderDetail.order_id = order.order_id;
       shippingOrderDetail.order = order;
       order.orderItems.push(shippingOrderDetail);
-
-      order.total_amount = totalAmount + 10;
 
       savedOrder = await manager.getRepository(Orders).save(order);
     });

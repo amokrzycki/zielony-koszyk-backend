@@ -3,6 +3,7 @@ import {
   EntitySubscriberInterface,
   UpdateEvent,
   RemoveEvent,
+  InsertEvent,
   DataSource,
   EntityManager,
 } from 'typeorm';
@@ -21,9 +22,26 @@ export class OrderItemsSubscriber
     return OrderItems;
   }
 
-  async afterUpdate(event: UpdateEvent<OrderItems>) {
-    console.log('[Subscriber] afterUpdate triggered!');
+  async afterInsert(event: InsertEvent<OrderItems>) {
+    const itemRepo = event.manager.getRepository(OrderItems);
 
+    const newItem = await itemRepo.findOne({
+      where: { order_item_id: event.entity?.order_item_id },
+      relations: ['order'],
+    });
+
+    if (!newItem) {
+      return;
+    }
+
+    if (!newItem.order) {
+      return;
+    }
+
+    await this.recalcOrderTotal(newItem.order.order_id, event.manager);
+  }
+
+  async afterUpdate(event: UpdateEvent<OrderItems>) {
     const itemRepo = event.manager.getRepository(OrderItems);
 
     const updatedItem = await itemRepo.findOne({
@@ -43,8 +61,6 @@ export class OrderItemsSubscriber
   }
 
   async afterRemove(event: RemoveEvent<OrderItems>) {
-    console.log('[Subscriber] afterRemove triggered!');
-
     const itemRepo = event.manager.getRepository(OrderItems);
 
     const removedItem = await itemRepo.findOne({

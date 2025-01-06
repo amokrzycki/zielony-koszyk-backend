@@ -17,6 +17,7 @@ import { UpdateAddressDto } from '../dto/update-address.dto';
 import { Addresses } from '../entities/addresses.entity';
 import { CreateAddressDto } from '../dto/create-address.dto';
 import { ApiBearerAuth } from '@nestjs/swagger';
+import { UpdateUserDto } from '../dto/update-user.dto';
 
 @Controller('users')
 export class UsersController {
@@ -43,11 +44,8 @@ export class UsersController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  @Put(':id')
-  update(
-    @Param('id') id: string,
-    @Body() user: Partial<Users>,
-  ): Promise<Users> {
+  @Put('/change-details/:id')
+  update(@Param('id') id: string, @Body() user: UpdateUserDto): Promise<Users> {
     return this.usersService.update(id, user);
   }
 
@@ -78,7 +76,7 @@ export class UsersController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  @Put(':id/address/:addressId')
+  @Put('/change-address/:id/address/:addressId')
   updateUserDetails(
     @Param('id') userId: string,
     @Param('addressId') addressId: string,

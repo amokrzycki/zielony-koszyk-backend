@@ -40,7 +40,7 @@ export class Orders {
   @CreateDateColumn()
   order_date: Date;
 
-  @Column('decimal', { precision: 10, scale: 2 })
+  @Column('decimal', { precision: 10, scale: 2, default: 0 })
   total_amount: number;
 
   @Column({ type: 'enum', enum: Statuses })

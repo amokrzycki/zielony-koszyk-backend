@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { Users } from './users.entity';
 import { AddressType } from '../enums/AddressType';
+import { Exclude } from 'class-transformer';
 
 @Entity()
 export class Addresses {
@@ -35,6 +36,7 @@ export class Addresses {
   })
   type: AddressType;
 
+  @Exclude()
   @Column('char', { length: 36, nullable: true })
   user_id: string;
 

@@ -14,6 +14,7 @@ import { UpdateAddressDto } from '../dto/update-address.dto';
 import { CreateAddressDto } from '../dto/create-address.dto';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { AddressType } from '../enums/AddressType';
+import { UpdateUserDto } from '../dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -84,11 +85,24 @@ export class UsersService {
     });
   }
 
-  async update(id: string, user: Partial<Users>): Promise<Users> {
-    await this.usersRepository.update(id, user);
-    return this.usersRepository.findOneBy({
-      user_id: id,
+  async update(id: string, user: UpdateUserDto): Promise<Users> {
+    const userToUpdate = await this.usersRepository.findOneBy({ user_id: id });
+
+    if (!userToUpdate) {
+      throw new NotFoundException('User not found');
+    }
+
+    await this.usersRepository.update(id, {
+      first_name: user.first_name,
+      last_name: user.last_name,
+      email: user.email,
+      phone: user.phone,
       updated_at: new Date(),
+    });
+
+    return this.usersRepository.findOne({
+      where: { user_id: id },
+      relations: ['addresses'],
     });
   }
 
