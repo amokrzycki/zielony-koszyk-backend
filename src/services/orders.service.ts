@@ -81,6 +81,8 @@ export class OrdersService {
       }
 
       // TODO: REWORK DELIVERY FEATURE
+      // TODO: Revert total amount calculation
+
       const shippingOrderDetail = new OrderItems();
       shippingOrderDetail.product_name = 'Dostawa';
       shippingOrderDetail.quantity = 1;

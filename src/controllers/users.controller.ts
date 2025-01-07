@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { UsersService } from '../services/users.service';
 import { Users } from '../entities/users.entity';
-import { CreateUserDto } from '../dto/create-user.dto';
+import { RegisterUserDto } from '../dto/register-user.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UpdatePassword } from '../types/UpdatePassword';
 import { UpdateAddressDto } from '../dto/update-address.dto';
@@ -18,6 +18,9 @@ import { Addresses } from '../entities/addresses.entity';
 import { CreateAddressDto } from '../dto/create-address.dto';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { UpdateUserDto } from '../dto/update-user.dto';
+import { CreateUserDto } from '../dto/create-user.dto';
+
+// TODO: Reset password flow
 
 @Controller('users')
 export class UsersController {
@@ -38,8 +41,15 @@ export class UsersController {
   }
 
   @Post('register')
-  async register(@Body() user: CreateUserDto): Promise<Users> {
+  async register(@Body() user: RegisterUserDto): Promise<Users> {
     return this.usersService.create(user);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Post('admin-create')
+  async createUser(@Body() user: CreateUserDto): Promise<Users> {
+    return this.usersService.createUserFromAdmin(user);
   }
 
   @ApiBearerAuth()

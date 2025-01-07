@@ -12,9 +12,12 @@ import { UpdatePassword } from '../types/UpdatePassword';
 import { Addresses } from '../entities/addresses.entity';
 import { UpdateAddressDto } from '../dto/update-address.dto';
 import { CreateAddressDto } from '../dto/create-address.dto';
-import { CreateUserDto } from '../dto/create-user.dto';
+import { RegisterUserDto } from '../dto/register-user.dto';
 import { AddressType } from '../enums/AddressType';
 import { UpdateUserDto } from '../dto/update-user.dto';
+import { CreateUserDto } from '../dto/create-user.dto';
+import { MailService } from './mail.service';
+import { generateRandomPassword } from '../utils/generateRandomPassword';
 
 @Injectable()
 export class UsersService {
@@ -23,6 +26,7 @@ export class UsersService {
     private usersRepository: Repository<Users>,
     @InjectRepository(Addresses)
     private addressesRepository: Repository<Addresses>,
+    private mailService: MailService,
   ) {}
 
   findAll(): Promise<Users[]> {
@@ -37,7 +41,7 @@ export class UsersService {
     return this.usersRepository.findOneBy({ user_id: id });
   }
 
-  async create(user: CreateUserDto): Promise<Users> {
+  async create(user: RegisterUserDto): Promise<Users> {
     const existingUser = await this.usersRepository.findOneBy({
       email: user.email,
     });
@@ -78,6 +82,65 @@ export class UsersService {
     });
 
     await this.addressesRepository.save([billingAddress, deliveryAddress]);
+
+    return this.usersRepository.findOne({
+      where: { user_id: savedUser.user_id },
+      relations: ['addresses'],
+    });
+  }
+
+  async createUserFromAdmin(user: CreateUserDto): Promise<Users> {
+    const existingUser = await this.usersRepository.findOneBy({
+      email: user.email,
+    });
+
+    if (existingUser) {
+      throw new BadRequestException('User with this email already exists');
+    }
+
+    const generatedPassword = generateRandomPassword(12);
+
+    const hashedPassword = await bcrypt.hash(generatedPassword, SALT_ROUNDS);
+
+    const newUser = this.usersRepository.create({
+      ...user,
+      password: hashedPassword,
+    });
+
+    const savedUser = await this.usersRepository.save(newUser);
+
+    delete savedUser.password;
+
+    const billingAddress = this.addressesRepository.create({
+      street: user.street,
+      city: user.city,
+      zip: user.zip,
+      building_number: user.building_number,
+      flat_number: user.flat_number,
+      type: AddressType.BILLING,
+      user: savedUser,
+    });
+
+    const deliveryAddress = this.addressesRepository.create({
+      street: user.street,
+      city: user.city,
+      zip: user.zip,
+      building_number: user.building_number,
+      flat_number: user.flat_number,
+      type: AddressType.DELIVERY,
+      user: savedUser,
+    });
+
+    await this.addressesRepository.save([billingAddress, deliveryAddress]);
+
+    try {
+      await this.mailService.sendEmailWithPassword(
+        savedUser,
+        generatedPassword,
+      );
+    } catch (error) {
+      console.error('Error sending email with password:', error);
+    }
 
     return this.usersRepository.findOne({
       where: { user_id: savedUser.user_id },
