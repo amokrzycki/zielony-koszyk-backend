@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Product } from '../entities/product.entity';
+import { Products } from '../entities/products.entity';
 import vegatables from '../constants/vegatables';
 import fruits from '../constants/fruits';
 import others from '../constants/others';
@@ -9,10 +9,10 @@ import seasonal from '../constants/seasonal';
 import collective from '../constants/collective';
 
 @Injectable()
-export class ProductSeedService {
+export class ProductsSeedService {
   constructor(
-    @InjectRepository(Product)
-    private productRepository: Repository<Product>,
+    @InjectRepository(Products)
+    private productsRepository: Repository<Products>,
   ) {}
 
   async seed() {
@@ -25,8 +25,8 @@ export class ProductSeedService {
     ];
 
     for (const product of products) {
-      const newProduct = this.productRepository.create(product);
-      await this.productRepository.save(newProduct);
+      const newProduct = this.productsRepository.create(product);
+      await this.productsRepository.save(newProduct);
     }
   }
 }

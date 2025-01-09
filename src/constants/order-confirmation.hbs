@@ -12,7 +12,7 @@
 <p>Kwota całkowita: {{total_amount}} zł</p>
 <h3>Szczegóły zamówienia:</h3>
 <ul>
-  {{#each orderDetails}}
+  {{#each orderItems}}
     <li>{{this.product.name}} x{{this.quantity}} - {{this.price}} zł</li>
   {{/each}}
 </ul>

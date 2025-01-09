@@ -3,20 +3,27 @@ import {
   CreateDateColumn,
   Entity,
   ManyToOne,
+  JoinColumn,
   PrimaryGeneratedColumn,
   OneToMany,
 } from 'typeorm';
-import { User } from './user.entity';
-import { OrderDetail } from './order-detail.entity';
+import { Users } from './users.entity';
 import { Statuses } from '../enums/Statuses';
+import { OrderItems } from './order-items.entity';
+import { Exclude } from 'class-transformer';
 
 @Entity()
-export class Order {
+export class Orders {
   @PrimaryGeneratedColumn()
   order_id: number;
 
-  @ManyToOne(() => User, { nullable: true })
+  @Column('char', { length: 36, nullable: true })
   user_id: string;
+
+  @ManyToOne(() => Users)
+  @Exclude()
+  @JoinColumn({ name: 'user_id' })
+  user: Users;
 
   @Column()
   customer_name: string;
@@ -33,14 +40,15 @@ export class Order {
   @CreateDateColumn()
   order_date: Date;
 
-  @Column('decimal', { precision: 10, scale: 2 })
+  @Column('decimal', { precision: 10, scale: 2, default: 0 })
   total_amount: number;
 
   @Column({ type: 'enum', enum: Statuses })
   status: Statuses;
 
-  @OneToMany(() => OrderDetail, (orderDetail) => orderDetail.order_id, {
+  @OneToMany(() => OrderItems, (orderItem) => orderItem.order, {
     cascade: true,
+    onDelete: 'CASCADE',
   })
-  orderDetails: OrderDetail[];
+  orderItems: OrderItems[];
 }

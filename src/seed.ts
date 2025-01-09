@@ -1,10 +1,10 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ProductSeedService } from './seeds/product-seed.service';
+import { ProductsSeedService } from './seeds/products-seed.service';
 
 async function bootstrap() {
   const app = await NestFactory.createApplicationContext(AppModule);
-  const productSeedService = app.get(ProductSeedService);
+  const productSeedService = app.get(ProductsSeedService);
   await productSeedService.seed();
   await app.close();
 }
