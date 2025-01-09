@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { OrderItems } from '../entities/order-items.entity';
+import { CreateOrderItemDto } from '../dto/create-order-item.dto';
 
 @Injectable()
 export class OrderItemsService {
@@ -18,9 +19,8 @@ export class OrderItemsService {
     return this.orderItemsRepository.findBy({ order_id: id });
   }
 
-  create(orderItem: Partial<OrderItems>): Promise<OrderItems> {
-    const newOrderItem = this.orderItemsRepository.create(orderItem);
-    return this.orderItemsRepository.save(newOrderItem);
+  create(orderItems: CreateOrderItemDto[]): Promise<OrderItems[]> {
+    return this.orderItemsRepository.save(orderItems);
   }
 
   async update(id: number, partial: Partial<OrderItems>): Promise<OrderItems> {
