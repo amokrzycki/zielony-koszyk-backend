@@ -14,6 +14,7 @@ import { Products } from '../entities/products.entity';
 import { CreateProductDto } from '../dto/create-product.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ApiBearerAuth } from '@nestjs/swagger';
+import { PageableProducts } from '../types/PageableProducts';
 
 @Controller('products')
 export class ProductsController {
@@ -24,23 +25,36 @@ export class ProductsController {
     return this.productsService.findAll();
   }
 
-  @Get('search/:category')
-  getByCategory(
-    @Param('category') category: string,
-    @Query('name') name?: string,
-  ): Promise<Products[]> {
-    if (!name) {
-      return this.productsService.findByCategory(category);
-    }
-    return this.productsService.findLikeNameInCategory(category, name);
-  }
-
   @Get('search')
-  getLikeName(@Query('name') name?: string): Promise<Products[]> {
-    if (!name) {
-      return this.productsService.findAll();
-    }
-    return this.productsService.findLikeName(name);
+  async searchProducts(
+    @Query('search') search?: string,
+    @Query('category') category?: string,
+    @Query('priceMin') priceMin?: string,
+    @Query('priceMax') priceMax?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+    @Query('orderBy') orderBy?: string,
+    @Query('orderDir') orderDir?: 'ASC' | 'DESC',
+  ): Promise<PageableProducts> {
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limit = pageSize ? parseInt(pageSize, 10) : 10;
+    const minPrice = priceMin ? parseFloat(priceMin) : undefined;
+    const maxPrice = priceMax ? parseFloat(priceMax) : undefined;
+    const direction = orderDir?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+
+    const validPage = isNaN(pageNum) || pageNum < 1 ? 1 : pageNum;
+    const validLimit = isNaN(limit) || limit < 1 ? 10 : limit;
+
+    return await this.productsService.search({
+      search,
+      category,
+      priceMin: minPrice,
+      priceMax: maxPrice,
+      page: validPage,
+      pageSize: validLimit,
+      orderBy,
+      orderDir: direction,
+    });
   }
 
   @Get(':id')
