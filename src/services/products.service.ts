@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Products } from '../entities/products.entity';
@@ -91,36 +95,73 @@ export class ProductsService {
     productId: number,
     file: Express.Multer.File,
   ): Promise<Products> {
+    if (!file) {
+      throw new BadRequestException('No file provided');
+    }
+
     const product = await this.productsRepository.findOne({
       where: { product_id: productId },
     });
+
     if (!product) {
       throw new NotFoundException('Product not found');
     }
 
-    const uploadDir = path.join(
-      __dirname,
-      '../../uploads/products',
-      String(productId),
-    );
+    const uploadDir = path.join(__dirname, '../../uploads');
+
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
+
+    if (product.image) {
+      const existingImage = path.join(__dirname, '../../', product.image);
+      if (fs.existsSync(existingImage)) {
+        fs.rm(existingImage, (err) => {
+          if (err) {
+            throw new NotFoundException('Error deleting existing image');
+          }
+        });
+      }
+    }
+
     const extension = path.extname(file.originalname);
     const filename = uuid() + extension;
     const filepath = path.join(uploadDir, filename);
 
     fs.writeFileSync(filepath, file.buffer);
 
-    product.image = `uploads/products/${productId}/${filename}`;
+    product.image = `uploads/${filename}`;
+    product.updated_at = new Date();
     await this.productsRepository.save(product);
 
     return product;
   }
 
-  async create(product: CreateProductDto): Promise<Products> {
+  async create(
+    product: CreateProductDto,
+    file?: Express.Multer.File,
+  ): Promise<Products> {
     const newProduct = this.productsRepository.create(product);
-    return this.productsRepository.save(newProduct);
+    const savedProduct = await this.productsRepository.save(newProduct);
+
+    if (file) {
+      const uploadDir = path.join(__dirname, '../../uploads');
+
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+
+      const extension = path.extname(file.originalname);
+      const filename = uuid() + extension;
+      const filepath = path.join(uploadDir, filename);
+
+      fs.writeFileSync(filepath, file.buffer);
+
+      savedProduct.image = `uploads/${filename}`;
+      await this.productsRepository.save(savedProduct);
+    }
+
+    return savedProduct;
   }
 
   async update(id: number, product: Partial<Products>): Promise<Products> {

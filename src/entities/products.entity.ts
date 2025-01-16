@@ -25,9 +25,12 @@ export class Products {
   @Column()
   stock_quantity: number;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, default: 'uploads/placeholder.jpg' })
   image: string;
 
   @CreateDateColumn()
   created_at: Date;
+
+  @CreateDateColumn()
+  updated_at: Date;
 }

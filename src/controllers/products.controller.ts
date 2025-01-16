@@ -69,8 +69,13 @@ export class ProductsController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Post()
-  create(@Body() product: CreateProductDto): Promise<Products> {
-    return this.productsService.create(product);
+  @UseInterceptors(FileInterceptor('file'))
+  create(
+    @Body('product') productString: string,
+    @UploadedFile() file?: Express.Multer.File,
+  ): Promise<Products> {
+    const product: CreateProductDto = JSON.parse(productString);
+    return this.productsService.create(product, file);
   }
 
   @ApiBearerAuth()
