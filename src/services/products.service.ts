@@ -1,10 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Products } from '../entities/products.entity';
-import { Like } from 'typeorm';
 import { CreateProductDto } from '../dto/create-product.dto';
 import { PageableProducts } from '../types/PageableProducts';
+import * as fs from 'fs';
+import * as path from 'path';
+import { v4 as uuid } from 'uuid';
 
 interface SearchParams {
   search?: string;
@@ -85,16 +87,35 @@ export class ProductsService {
     };
   }
 
-  async findLikeNameInCategory(
-    category: string,
-    name: string,
-  ): Promise<Products[]> {
-    return this.productsRepository.find({
-      where: {
-        name: Like(`%${name}%`),
-        category,
-      },
+  async uploadProductImage(
+    productId: number,
+    file: Express.Multer.File,
+  ): Promise<Products> {
+    const product = await this.productsRepository.findOne({
+      where: { product_id: productId },
     });
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    const uploadDir = path.join(
+      __dirname,
+      '../../uploads/products',
+      String(productId),
+    );
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    const extension = path.extname(file.originalname);
+    const filename = uuid() + extension;
+    const filepath = path.join(uploadDir, filename);
+
+    fs.writeFileSync(filepath, file.buffer);
+
+    product.image = `uploads/products/${productId}/${filename}`;
+    await this.productsRepository.save(product);
+
+    return product;
   }
 
   async create(product: CreateProductDto): Promise<Products> {

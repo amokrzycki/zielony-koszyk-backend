@@ -25,6 +25,9 @@ export class Products {
   @Column()
   stock_quantity: number;
 
+  @Column({ nullable: true })
+  image: string;
+
   @CreateDateColumn()
   created_at: Date;
 }

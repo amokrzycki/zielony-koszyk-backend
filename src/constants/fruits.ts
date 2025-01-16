@@ -5,6 +5,7 @@ const fruits = [
     price: 10.0,
     category: 'owoce',
     stock_quantity: 50,
+    image: 'uploads/ananas.png',
   },
   {
     name: 'Banan',
@@ -12,6 +13,7 @@ const fruits = [
     price: 6.5,
     category: 'owoce',
     stock_quantity: 50,
+    image: 'uploads/banan.png',
   },
   {
     name: 'Borówka Amerykańska',
@@ -19,6 +21,7 @@ const fruits = [
     price: 15.0,
     category: 'owoce',
     stock_quantity: 50,
+    image: 'uploads/borowka.png',
   },
   {
     name: 'Cytryna',
@@ -26,6 +29,7 @@ const fruits = [
     price: 8.0,
     category: 'owoce',
     stock_quantity: 50,
+    image: 'uploads/cytryna.png',
   },
   {
     name: 'Czereśnie',
@@ -33,6 +37,7 @@ const fruits = [
     price: 12.0,
     category: 'owoce',
     stock_quantity: 50,
+    image: 'uploads/czeresnie.jpeg',
   },
   {
     name: 'Grapefruit',
@@ -40,6 +45,7 @@ const fruits = [
     price: 8.0,
     category: 'owoce',
     stock_quantity: 50,
+    image: 'uploads/grapefruit.jpeg',
   },
   {
     name: 'Gruszka',
@@ -47,6 +53,7 @@ const fruits = [
     price: 7.0,
     category: 'owoce',
     stock_quantity: 50,
+    image: 'uploads/gruszka.jpeg',
   },
   {
     name: 'Jabłka Golden Delicjusz',
@@ -54,6 +61,7 @@ const fruits = [
     price: 3.0,
     category: 'owoce',
     stock_quantity: 50,
+    image: 'uploads/jablka.jpeg',
   },
   {
     name: 'Jabłka Koksa Górska',
@@ -61,6 +69,7 @@ const fruits = [
     price: 3.0,
     category: 'owoce',
     stock_quantity: 50,
+    image: 'uploads/jablka2.jpeg',
   },
   {
     name: 'Jabłka Szara Reneta',
@@ -68,6 +77,7 @@ const fruits = [
     price: 3.5,
     category: 'owoce',
     stock_quantity: 50,
+    image: 'uploads/jablka3.jpeg',
   },
   {
     name: 'Jabłka Champion',
@@ -75,6 +85,7 @@ const fruits = [
     price: 3.0,
     category: 'owoce',
     stock_quantity: 50,
+    image: 'uploads/jablka.jpeg',
   },
   {
     name: 'Jabłka Ligol',
@@ -82,6 +93,7 @@ const fruits = [
     price: 3.0,
     category: 'owoce',
     stock_quantity: 50,
+    image: 'uploads/jablka3.jpeg',
   },
   {
     name: 'Jabłka Prins',
@@ -89,6 +101,7 @@ const fruits = [
     price: 3.5,
     category: 'owoce',
     stock_quantity: 50,
+    image: 'uploads/jablka2.jpeg',
   },
   {
     name: 'Jabłka Rubin',
@@ -96,6 +109,7 @@ const fruits = [
     price: 3.5,
     category: 'owoce',
     stock_quantity: 50,
+    image: 'uploads/jablka.jpeg',
   },
   {
     name: 'Kiwi Koszyk',
@@ -103,6 +117,7 @@ const fruits = [
     price: 12.0,
     category: 'owoce',
     stock_quantity: 50,
+    image: 'uploads/kiwikoszyk.jpeg',
   },
   {
     name: 'Kiwi Luz',
@@ -110,6 +125,7 @@ const fruits = [
     price: 15.0,
     category: 'owoce',
     stock_quantity: 50,
+    image: 'uploads/kiwiluz.jpeg',
   },
   {
     name: 'Limonka',
@@ -117,6 +133,7 @@ const fruits = [
     price: 18.0,
     category: 'owoce',
     stock_quantity: 50,
+    image: 'uploads/limonka.jpg',
   },
   {
     name: 'Malina',
@@ -124,6 +141,7 @@ const fruits = [
     price: 15.0,
     category: 'owoce',
     stock_quantity: 50,
+    image: 'uploads/malina.jpeg',
   },
   {
     name: 'Mandarynka',
@@ -131,6 +149,7 @@ const fruits = [
     price: 8.0,
     category: 'owoce',
     stock_quantity: 50,
+    image: 'uploads/mandarynka.jpeg',
   },
   {
     name: 'Mango',
@@ -138,6 +157,7 @@ const fruits = [
     price: 7.0,
     category: 'owoce',
     stock_quantity: 50,
+    image: 'uploads/mango.jpeg',
   },
   {
     name: 'Melon Żółty',
@@ -145,6 +165,7 @@ const fruits = [
     price: 14.0,
     category: 'owoce',
     stock_quantity: 50,
+    image: 'uploads/melon.jpeg',
   },
   {
     name: 'Morela Polska',
@@ -152,6 +173,7 @@ const fruits = [
     price: 15.0,
     category: 'owoce',
     stock_quantity: 50,
+    image: 'uploads/morela.jpeg',
   },
   {
     name: 'Pomarańcze',
@@ -159,6 +181,7 @@ const fruits = [
     price: 8.0,
     category: 'owoce',
     stock_quantity: 50,
+    image: 'uploads/pomarancze.png',
   },
   {
     name: 'Śliwka',
@@ -166,6 +189,7 @@ const fruits = [
     price: 5.0,
     category: 'owoce',
     stock_quantity: 50,
+    image: 'uploads/sliwka.jpeg',
   },
   {
     name: 'Śliwka Węgierka',
@@ -173,6 +197,7 @@ const fruits = [
     price: 5.0,
     category: 'owoce',
     stock_quantity: 50,
+    image: 'uploads/sliwka2.jpeg',
   },
   {
     name: 'Truskawka Grecja',
@@ -180,6 +205,7 @@ const fruits = [
     price: 20.0,
     category: 'owoce',
     stock_quantity: 50,
+    image: 'uploads/truskawka.jpeg',
   },
   {
     name: 'Winogrono Białe',
@@ -187,6 +213,7 @@ const fruits = [
     price: 19.0,
     category: 'owoce',
     stock_quantity: 50,
+    image: 'uploads/winogrono.jpeg',
   },
   {
     name: 'Winogrono Czerwone',
@@ -194,6 +221,7 @@ const fruits = [
     price: 19.0,
     category: 'owoce',
     stock_quantity: 50,
+    image: 'uploads/winogrono.png',
   },
 ];
 
