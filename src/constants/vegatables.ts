@@ -5,6 +5,7 @@ const vegatables = [
     price: 6.5,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/avocado.png',
   },
   {
     name: 'Bakłażan',
@@ -12,6 +13,7 @@ const vegatables = [
     price: 3.9,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/baklazan.png',
   },
   {
     name: 'Bataty',
@@ -19,6 +21,7 @@ const vegatables = [
     price: 5.0,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/bataty.png',
   },
   {
     name: 'Bób',
@@ -26,6 +29,7 @@ const vegatables = [
     price: 28.0,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/bob.png',
   },
   {
     name: 'Botwinka',
@@ -33,6 +37,7 @@ const vegatables = [
     price: 7.5,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/botwinka.png',
   },
   {
     name: 'Brokuł',
@@ -40,6 +45,7 @@ const vegatables = [
     price: 8.0,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/brokul.png',
   },
   {
     name: 'Brukselka',
@@ -47,6 +53,7 @@ const vegatables = [
     price: 14.0,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/brukselka.png',
   },
   {
     name: 'Burak',
@@ -54,20 +61,7 @@ const vegatables = [
     price: 3.0,
     category: 'warzywa',
     stock_quantity: 100,
-  },
-  {
-    name: 'Burak długi',
-    description: 'Świeży burak długi',
-    price: 2.5,
-    category: 'warzywa',
-    stock_quantity: 100,
-  },
-  {
-    name: 'Burak worek',
-    description: 'Świeży burak w worku',
-    price: 5.0,
-    category: 'warzywa',
-    stock_quantity: 100,
+    image: 'uploads/burak.png',
   },
   {
     name: 'Cebula biała',
@@ -75,6 +69,7 @@ const vegatables = [
     price: 3.5,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/cebulabiala.png',
   },
   {
     name: 'Cebula czerwona',
@@ -82,6 +77,7 @@ const vegatables = [
     price: 6.0,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/cebulaczerwona.jpeg',
   },
   {
     name: 'Cukinia',
@@ -89,6 +85,7 @@ const vegatables = [
     price: 5.0,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/cukinia.jpeg',
   },
   {
     name: 'Czosnek główka',
@@ -96,6 +93,7 @@ const vegatables = [
     price: 2.0,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/czosnek.png',
   },
   {
     name: 'Dynia',
@@ -103,6 +101,7 @@ const vegatables = [
     price: 10.0,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/dynia.png',
   },
   {
     name: 'Fasolka szparagowa',
@@ -110,6 +109,7 @@ const vegatables = [
     price: 15.0,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/fasolkaszparagowa.jpg',
   },
   {
     name: 'Imbir',
@@ -117,13 +117,7 @@ const vegatables = [
     price: 30.0,
     category: 'warzywa',
     stock_quantity: 100,
-  },
-  {
-    name: 'Jarzynka',
-    description: 'Świeża jarzynka',
-    price: 5.0,
-    category: 'warzywa',
-    stock_quantity: 100,
+    image: 'uploads/imbir.jpeg',
   },
   {
     name: 'Kalafior',
@@ -131,6 +125,7 @@ const vegatables = [
     price: 12.0,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/kalafior.png',
   },
   {
     name: 'Kapusta biała',
@@ -138,6 +133,7 @@ const vegatables = [
     price: 5.0,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/kapustabiala.png',
   },
   {
     name: 'Kapusta czerwona',
@@ -145,6 +141,7 @@ const vegatables = [
     price: 7.5,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/kapustaczerwona.png',
   },
   {
     name: 'Koper',
@@ -152,6 +149,7 @@ const vegatables = [
     price: 2.7,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/koper.jpeg',
   },
   {
     name: 'Marchew',
@@ -159,6 +157,7 @@ const vegatables = [
     price: 4.0,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/marchew.png',
   },
   {
     name: 'Ogórek gruntowy',
@@ -166,6 +165,7 @@ const vegatables = [
     price: 6.0,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/ogorek.jpeg',
   },
   {
     name: 'Papryka',
@@ -173,6 +173,7 @@ const vegatables = [
     price: 18.0,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/papryka.jpg',
   },
   {
     name: 'Pieczarka',
@@ -180,6 +181,7 @@ const vegatables = [
     price: 12.0,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/pieczarka.jpeg',
   },
   {
     name: 'Pomidor malinowy',
@@ -187,6 +189,7 @@ const vegatables = [
     price: 23.0,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/pomidor.jpg',
   },
   {
     name: 'Pomidor Polski',
@@ -194,6 +197,7 @@ const vegatables = [
     price: 15.0,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/pomidor1.jpg',
   },
   {
     name: 'Por',
@@ -201,6 +205,7 @@ const vegatables = [
     price: 5.0,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/por.jpeg',
   },
   {
     name: 'Rabarbar',
@@ -208,6 +213,7 @@ const vegatables = [
     price: 12.0,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/rabarbar.jpeg',
   },
   {
     name: 'Roszponka',
@@ -215,6 +221,7 @@ const vegatables = [
     price: 6.5,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/roszponka.jpeg',
   },
   {
     name: 'Rukola',
@@ -222,6 +229,7 @@ const vegatables = [
     price: 6.5,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/rukola.jpeg',
   },
   {
     name: 'Rzodkiewka pęczek',
@@ -229,6 +237,7 @@ const vegatables = [
     price: 3.0,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/rzodkiewka.png',
   },
   {
     name: 'Sałata lodowa',
@@ -236,6 +245,7 @@ const vegatables = [
     price: 6.0,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/salatalodowa.jpeg',
   },
   {
     name: 'Sałata masłowa',
@@ -243,6 +253,7 @@ const vegatables = [
     price: 5.5,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/salata.jpeg',
   },
   {
     name: 'Sałata rzymska',
@@ -250,6 +261,7 @@ const vegatables = [
     price: 7.5,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/salata1.jpeg',
   },
   {
     name: 'Sałata strzępiasta',
@@ -257,6 +269,7 @@ const vegatables = [
     price: 5.5,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/salata2.jpeg',
   },
   {
     name: 'Seler korzeń',
@@ -264,6 +277,7 @@ const vegatables = [
     price: 6.5,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/seler.png',
   },
   {
     name: 'Seler naciowy',
@@ -271,6 +285,7 @@ const vegatables = [
     price: 6.0,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/selernaciowy.jpg',
   },
   {
     name: 'Szczypiorek',
@@ -278,6 +293,7 @@ const vegatables = [
     price: 2.5,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/szczypiorek.png',
   },
   {
     name: 'Szparagi',
@@ -285,6 +301,7 @@ const vegatables = [
     price: 35.0,
     category: 'warzywa',
     stock_quantity: 100,
+    image: 'uploads/szparagi.jpg',
   },
   {
     name: 'Szpinak świeży',
@@ -292,27 +309,7 @@ const vegatables = [
     price: 8.0,
     category: 'warzywa',
     stock_quantity: 100,
-  },
-  {
-    name: 'Ziemniak czerwony',
-    description: 'Świeży ziemniak czerwony',
-    price: 2.5,
-    category: 'warzywa',
-    stock_quantity: 100,
-  },
-  {
-    name: 'Ziemniak młody Grecja',
-    description: 'Świeży ziemniak młody z Grecji',
-    price: 6.0,
-    category: 'warzywa',
-    stock_quantity: 100,
-  },
-  {
-    name: 'Ziemniak worek 15 kg',
-    description: 'Świeży ziemniak w worku 15 kg',
-    price: 33.0,
-    category: 'warzywa',
-    stock_quantity: 100,
+    image: 'uploads/szpinak.jpeg',
   },
   {
     name: 'Ziemniak żółty',
@@ -320,13 +317,7 @@ const vegatables = [
     price: 2.5,
     category: 'warzywa',
     stock_quantity: 100,
-  },
-  {
-    name: 'Ziemniak żółty 5 kg',
-    description: 'Świeży ziemniak żółty 5 kg',
-    price: 15.0,
-    category: 'warzywa',
-    stock_quantity: 100,
+    image: 'uploads/ziemniak.jpeg',
   },
 ];
 

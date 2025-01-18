@@ -1,11 +1,12 @@
 const others = [
   {
-    name: 'BRINIZA Oliwa z Liwek 500 ml',
+    name: 'BRINIZA Oliwa z Oliwek 500 ml',
     description:
       'Wysokiej jakości oliwa z liwek, idealna do sałatek i gotowania.',
     price: 49.0,
     category: 'inne',
     stock_quantity: 50,
+    image: 'uploads/oliwazoliwek.png',
   },
   {
     name: 'BRINIZA Oliwa z Oliwek 3 lt',
@@ -14,6 +15,7 @@ const others = [
     price: 220.0,
     category: 'inne',
     stock_quantity: 30,
+    image: 'uploads/oliwazliwek.png',
   },
   {
     name: 'BRINIZA Oliwa z Oliwek 5 lt',
@@ -22,6 +24,7 @@ const others = [
     price: 320.0,
     category: 'inne',
     stock_quantity: 20,
+    image: 'uploads/oliwazliwek.png',
   },
   {
     name: 'BRINIZA Oliwa z Oliwek 750 ml',
@@ -30,13 +33,7 @@ const others = [
     price: 69.0,
     category: 'inne',
     stock_quantity: 40,
-  },
-  {
-    name: 'BRINZA Oliwa z Olwek 500 ml puszka',
-    description: 'Oliwa z oliwek w praktycznej puszce, idealna na prezent.',
-    price: 35.0,
-    category: 'inne',
-    stock_quantity: 60,
+    image: 'uploads/oliwa750.png',
   },
   {
     name: 'Herbata górska Gojnik',
@@ -45,6 +42,7 @@ const others = [
     price: 10.0,
     category: 'inne',
     stock_quantity: 80,
+    image: 'uploads/herbata.jpeg',
   },
   {
     name: 'Liść Laurowy',
@@ -52,6 +50,7 @@ const others = [
     price: 5.0,
     category: 'inne',
     stock_quantity: 100,
+    image: 'uploads/lisclaurowy.jpeg',
   },
   {
     name: 'Miód Dębowy',
@@ -59,6 +58,7 @@ const others = [
     price: 85.0,
     category: 'inne',
     stock_quantity: 25,
+    image: 'uploads/miod.png',
   },
   {
     name: 'Miód Kwiatowy',
@@ -66,6 +66,7 @@ const others = [
     price: 85.0,
     category: 'inne',
     stock_quantity: 25,
+    image: 'uploads/miod.png',
   },
   {
     name: 'Miód Sosnowy',
@@ -73,6 +74,7 @@ const others = [
     price: 85.0,
     category: 'inne',
     stock_quantity: 25,
+    image: 'uploads/miod.png',
   },
   {
     name: 'Ocet Balsamiczny',
@@ -81,6 +83,7 @@ const others = [
     price: 15.0,
     category: 'inne',
     stock_quantity: 50,
+    image: 'uploads/ocet.jpeg',
   },
   {
     name: 'Ocet balsamiczny z miodem',
@@ -89,6 +92,7 @@ const others = [
     price: 16.0,
     category: 'inne',
     stock_quantity: 45,
+    image: 'uploads/ocet1.jpeg',
   },
   {
     name: 'Ocet biały winogronowy',
@@ -97,6 +101,7 @@ const others = [
     price: 8.5,
     category: 'inne',
     stock_quantity: 60,
+    image: 'uploads/ocet2.jpeg',
   },
   {
     name: 'Ocet czerwony winogronowy',
@@ -105,6 +110,7 @@ const others = [
     price: 8.0,
     category: 'inne',
     stock_quantity: 60,
+    image: 'uploads/ocet3.jpeg',
   },
   {
     name: 'Ocet winny z bazylią',
@@ -113,6 +119,7 @@ const others = [
     price: 10.0,
     category: 'inne',
     stock_quantity: 55,
+    image: 'uploads/ocet.jpeg',
   },
   {
     name: 'Ocet winny z czosnkiem',
@@ -121,6 +128,7 @@ const others = [
     price: 10.0,
     category: 'inne',
     stock_quantity: 55,
+    image: 'uploads/ocet1.jpeg',
   },
   {
     name: 'Ocet winny z estragonem',
@@ -129,43 +137,7 @@ const others = [
     price: 10.0,
     category: 'inne',
     stock_quantity: 55,
-  },
-  {
-    name: 'Ocet winny z oregano',
-    description:
-      'Ocet winny z dodatkiem oregano, doskonały do sosów i sałatek.',
-    price: 10.0,
-    category: 'inne',
-    stock_quantity: 55,
-  },
-  {
-    name: 'Ocet winny z rozmarynem',
-    description: 'Ocet winny wzbogacony o świeży rozmaryn, idealny do marynat.',
-    price: 10.0,
-    category: 'inne',
-    stock_quantity: 55,
-  },
-  {
-    name: 'Ocet winogronowy biały',
-    description:
-      'Łagodny ocet winogronowy, doskonały do lekkich potraw i sałatek.',
-    price: 6.0,
-    category: 'inne',
-    stock_quantity: 70,
-  },
-  {
-    name: 'Ocet winogronowy czerwony',
-    description: 'Bogaty ocet winogronowy, idealny do intensywnych potraw.',
-    price: 6.0,
-    category: 'inne',
-    stock_quantity: 70,
-  },
-  {
-    name: 'Oliwki Kalamon',
-    description: 'Klasyczne oliwki Kalamon o głębokim, wyrazistym smaku.',
-    price: 65.0,
-    category: 'inne',
-    stock_quantity: 35,
+    image: 'uploads/ocet2.jpeg',
   },
   {
     name: 'Oliwki Kalamon',
@@ -174,6 +146,7 @@ const others = [
     price: 19.0,
     category: 'inne',
     stock_quantity: 75,
+    image: 'uploads/oliwki.jpg',
   },
   {
     name: 'Oliwki marynowane',
@@ -181,6 +154,7 @@ const others = [
     price: 19.0,
     category: 'inne',
     stock_quantity: 75,
+    image: 'uploads/oliwkimarynowane.png',
   },
   {
     name: 'Oliwki mix',
@@ -188,6 +162,7 @@ const others = [
     price: 19.0,
     category: 'inne',
     stock_quantity: 75,
+    image: 'uploads/oliwki1.jpg',
   },
   {
     name: 'Oliwki z czosnkiem',
@@ -196,28 +171,7 @@ const others = [
     price: 65.0,
     category: 'inne',
     stock_quantity: 35,
-  },
-  {
-    name: 'Oliwki z migdałami',
-    description: 'Oliwki nadziewane migdałami, idealne do sałatek i przekąsek.',
-    price: 65.0,
-    category: 'inne',
-    stock_quantity: 35,
-  },
-  {
-    name: 'Oliwki z papryką naturalną',
-    description:
-      'Oliwki z dodatkiem naturalnej papryki, doskonałe do przekąsek.',
-    price: 65.0,
-    category: 'inne',
-    stock_quantity: 35,
-  },
-  {
-    name: 'Oliwki z papryką piri-piri',
-    description: 'Pikantne oliwki z dodatkiem ostrej papryki piri-piri.',
-    price: 65.0,
-    category: 'inne',
-    stock_quantity: 35,
+    image: 'uploads/oliwki2.jpeg',
   },
   {
     name: 'Oliwki zielone',
@@ -225,6 +179,7 @@ const others = [
     price: 19.0,
     category: 'inne',
     stock_quantity: 75,
+    image: 'uploads/oliwki.png',
   },
   {
     name: 'Oliwki zielone drylowane',
@@ -232,21 +187,7 @@ const others = [
     price: 65.0,
     category: 'inne',
     stock_quantity: 35,
-  },
-  {
-    name: 'Oliwki zielone z oregano',
-    description:
-      'Oliwki zielone z dodatkiem świeżego oregano, doskonałe do przekąsek.',
-    price: 19.0,
-    category: 'inne',
-    stock_quantity: 75,
-  },
-  {
-    name: 'Oliwki zielone z pestką',
-    description: 'Zielone oliwki z pestką, idealne do przekąsek i gotowania.',
-    price: 65.0,
-    category: 'inne',
-    stock_quantity: 35,
+    image: 'uploads/oliwki.jpg',
   },
   {
     name: 'Oregano Górskie',
@@ -255,6 +196,7 @@ const others = [
     price: 5.0,
     category: 'inne',
     stock_quantity: 100,
+    image: 'uploads/oregano.jpg',
   },
   {
     name: 'Rozmaryn',
@@ -262,6 +204,7 @@ const others = [
     price: 5.0,
     category: 'inne',
     stock_quantity: 100,
+    image: 'uploads/rozmaryn.jpeg',
   },
   {
     name: 'Rumianek',
@@ -269,6 +212,7 @@ const others = [
     price: 8.5,
     category: 'inne',
     stock_quantity: 80,
+    image: 'uploads/rumianek.jpeg',
   },
   {
     name: 'Ser Feta',
@@ -277,52 +221,7 @@ const others = [
     price: 70.0,
     category: 'inne',
     stock_quantity: 40,
-  },
-  {
-    name: 'Ser Feta taper 400 gr',
-    description:
-      'Porcjowany ser feta w praktycznym opakowaniu, idealny na przekąski.',
-    price: 35.0,
-    category: 'inne',
-    stock_quantity: 50,
-  },
-  {
-    name: 'Tahini',
-    description: 'Gładka pasta sezamowa, doskonała do hummusu i innych potraw.',
-    price: 28.0,
-    category: 'inne',
-    stock_quantity: 60,
-  },
-  {
-    name: 'TAHINI BIO',
-    description: 'Organiczna pasta sezamowa, idealna dla zdrowej kuchni.',
-    price: 19.5,
-    category: 'inne',
-    stock_quantity: 50,
-  },
-  {
-    name: 'TAHINI PEŁNOZIARNISTE',
-    description:
-      'Pełnoziarnista pasta sezamowa, bogata w błonnik i składniki odżywcze.',
-    price: 28.0,
-    category: 'inne',
-    stock_quantity: 60,
-  },
-  {
-    name: 'Tahini pomarańczowe',
-    description:
-      'Pasta sezamowa z dodatkiem pomarańczy, doskonała do deserów i potraw orientalnych.',
-    price: 28.0,
-    category: 'inne',
-    stock_quantity: 60,
-  },
-  {
-    name: 'TAHINI Z PREBIOTYKAMI',
-    description:
-      'Pasta sezamowa wzbogacona o prebiotyki, idealna dla zdrowia jelit.',
-    price: 18.9,
-    category: 'inne',
-    stock_quantity: 50,
+    image: 'uploads/feta.jpg',
   },
 ];
 

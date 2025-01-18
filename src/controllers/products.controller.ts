@@ -4,10 +4,13 @@ import {
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Post,
   Put,
   Query,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ProductsService } from '../services/products.service';
 import { Products } from '../entities/products.entity';
@@ -15,6 +18,7 @@ import { CreateProductDto } from '../dto/create-product.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { PageableProducts } from '../types/PageableProducts';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('products')
 export class ProductsController {
@@ -65,8 +69,13 @@ export class ProductsController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Post()
-  create(@Body() product: CreateProductDto): Promise<Products> {
-    return this.productsService.create(product);
+  @UseInterceptors(FileInterceptor('file'))
+  create(
+    @Body('product') productString: string,
+    @UploadedFile() file?: Express.Multer.File,
+  ): Promise<Products> {
+    const product: CreateProductDto = JSON.parse(productString);
+    return this.productsService.create(product, file);
   }
 
   @ApiBearerAuth()
@@ -84,5 +93,14 @@ export class ProductsController {
   @Delete(':id')
   remove(@Param('id') id: string): Promise<void> {
     return this.productsService.remove(+id);
+  }
+
+  @Post(':id/image')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadImage(
+    @Param('id', ParseIntPipe) id: number,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return await this.productsService.uploadProductImage(id, file);
   }
 }

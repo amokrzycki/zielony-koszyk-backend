@@ -23,6 +23,7 @@ services:
       - db
     volumes:
       - ./src:/app/src
+      - ./uploads:/app/uploads
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin

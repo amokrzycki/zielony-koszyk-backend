@@ -6,22 +6,7 @@ const seasonal = [
     price: 15.0,
     category: 'sezonowe',
     stock_quantity: 100,
-  },
-  {
-    name: 'Groch Jasiek drobny',
-    description:
-      'Drobnoziarnisty groch Jasiek, doskonały składnik tradycyjnych polskich potraw.',
-    price: 18.0,
-    category: 'sezonowe',
-    stock_quantity: 80,
-  },
-  {
-    name: 'Groch Jasiek duży',
-    description:
-      'Dużoziarnisty groch Jasiek, idealny do gulaszy i dań z grochem.',
-    price: 30.0,
-    category: 'sezonowe',
-    stock_quantity: 60,
+    image: 'uploads/fasolabiala.jpeg',
   },
   {
     name: 'Gruszka suszona',
@@ -30,6 +15,7 @@ const seasonal = [
     price: 20.0,
     category: 'sezonowe',
     stock_quantity: 70,
+    image: 'uploads/gruszkasuszona.jpg',
   },
   {
     name: 'Jabłko suszone',
@@ -38,6 +24,7 @@ const seasonal = [
     price: 15.0,
     category: 'sezonowe',
     stock_quantity: 90,
+    image: 'uploads/jablkosuszone.jpeg',
   },
   {
     name: 'Kapusta kiszona 1 kg',
@@ -46,6 +33,7 @@ const seasonal = [
     price: 7.0,
     category: 'sezonowe',
     stock_quantity: 120,
+    image: 'uploads/kapustakiszona.png',
   },
   {
     name: 'Kapusta kiszona 3 kg',
@@ -54,6 +42,7 @@ const seasonal = [
     price: 19.0,
     category: 'sezonowe',
     stock_quantity: 80,
+    image: 'uploads/kapustakiszona.png',
   },
   {
     name: 'Kasza Gryczana Niepalona',
@@ -62,6 +51,7 @@ const seasonal = [
     price: 12.0,
     category: 'sezonowe',
     stock_quantity: 100,
+    image: 'uploads/kaszagryczana.jpeg',
   },
   {
     name: 'Kasza gryczana palona',
@@ -70,6 +60,7 @@ const seasonal = [
     price: 12.0,
     category: 'sezonowe',
     stock_quantity: 100,
+    image: 'uploads/kaszapalona.png',
   },
   {
     name: 'Kasza Jaglana',
@@ -78,14 +69,16 @@ const seasonal = [
     price: 10.0,
     category: 'sezonowe',
     stock_quantity: 120,
+    image: 'uploads/jaglana.jpeg',
   },
   {
     name: 'Orzech Laskowy',
     description:
-      'Chrupoce orzechy laskowe, bogate w kwasy omega-3 i inne składniki odżywcze.',
+      'Chrupiące orzechy laskowe, bogate w kwasy omega-3 i inne składniki odżywcze.',
     price: 14.0,
     category: 'sezonowe',
     stock_quantity: 90,
+    image: 'uploads/orzechlaskowy.jpeg',
   },
   {
     name: 'Orzech włoski',
@@ -94,6 +87,7 @@ const seasonal = [
     price: 38.0,
     category: 'sezonowe',
     stock_quantity: 70,
+    image: 'uploads/orzechwloski.jpeg',
   },
   {
     name: 'Śliwka suszona bez pestki',
@@ -102,6 +96,7 @@ const seasonal = [
     price: 30.0,
     category: 'sezonowe',
     stock_quantity: 60,
+    image: 'uploads/sliwkasuszona.jpeg',
   },
   {
     name: 'Śliwka suszona z pestką',
@@ -110,6 +105,7 @@ const seasonal = [
     price: 15.0,
     category: 'sezonowe',
     stock_quantity: 80,
+    image: 'uploads/sliwkasuszona.jpeg',
   },
   {
     name: 'Śliwka wędzona z pestką',
@@ -118,6 +114,7 @@ const seasonal = [
     price: 20.0,
     category: 'sezonowe',
     stock_quantity: 70,
+    image: 'uploads/sliwkasuszona.jpeg',
   },
   {
     name: 'Słonecznik',
@@ -125,6 +122,7 @@ const seasonal = [
     price: 5.0,
     category: 'sezonowe',
     stock_quantity: 150,
+    image: 'uploads/slonecznik.jpeg',
   },
   {
     name: 'Żurawina Suszona',
@@ -133,6 +131,7 @@ const seasonal = [
     price: 39.0,
     category: 'sezonowe',
     stock_quantity: 50,
+    image: 'uploads/zurawinasuszona.png',
   },
 ];
 
