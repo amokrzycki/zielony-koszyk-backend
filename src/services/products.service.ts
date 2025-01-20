@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Products } from '../entities/products.entity';
+import { Product } from '../entities/product.entity';
 import { CreateProductDto } from '../dto/create-product.dto';
 import { PageableProducts } from '../types/PageableProducts';
 import * as fs from 'fs';
@@ -26,15 +26,15 @@ interface SearchParams {
 @Injectable()
 export class ProductsService {
   constructor(
-    @InjectRepository(Products)
-    private productsRepository: Repository<Products>,
+    @InjectRepository(Product)
+    private productsRepository: Repository<Product>,
   ) {}
 
-  findAll(): Promise<Products[]> {
+  findAll(): Promise<Product[]> {
     return this.productsRepository.find();
   }
 
-  findOne(id: number): Promise<Products> {
+  findOne(id: number): Promise<Product> {
     return this.productsRepository.findOneBy({ product_id: id });
   }
 
@@ -94,7 +94,7 @@ export class ProductsService {
   async uploadProductImage(
     productId: number,
     file: Express.Multer.File,
-  ): Promise<Products> {
+  ): Promise<Product> {
     if (!file) {
       throw new BadRequestException('No file provided');
     }
@@ -140,7 +140,7 @@ export class ProductsService {
   async create(
     product: CreateProductDto,
     file?: Express.Multer.File,
-  ): Promise<Products> {
+  ): Promise<Product> {
     const newProduct = this.productsRepository.create(product);
     const savedProduct = await this.productsRepository.save(newProduct);
 
@@ -164,7 +164,7 @@ export class ProductsService {
     return savedProduct;
   }
 
-  async update(id: number, product: Partial<Products>): Promise<Products> {
+  async update(id: number, product: Partial<Product>): Promise<Product> {
     await this.productsRepository.update(id, product);
     return this.productsRepository.findOneBy({ product_id: id });
   }

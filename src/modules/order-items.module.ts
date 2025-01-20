@@ -4,14 +4,14 @@ import { OrderItemsService } from '../services/order-items.service';
 import { OrderItemsController } from '../controllers/order-items.controller';
 import { OrdersModule } from './orders.module';
 import { ProductsModule } from './products.module';
-import { OrderItems } from '../entities/order-items.entity';
-import { Orders } from '../entities/orders.entity';
+import { OrderItem } from '../entities/order-item.entity';
+import { Order } from '../entities/order.entity';
 import { OrderItemsSubscriber } from '../subscribers/order-items.subscriber';
 import { DataSource } from 'typeorm';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([OrderItems, Orders]),
+    TypeOrmModule.forFeature([OrderItem, Order]),
     OrdersModule,
     ProductsModule,
   ],

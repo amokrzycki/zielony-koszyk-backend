@@ -1,29 +1,29 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { OrderItems } from '../entities/order-items.entity';
+import { OrderItem } from '../entities/order-item.entity';
 import { CreateOrderItemDto } from '../dto/create-order-item.dto';
 
 @Injectable()
 export class OrderItemsService {
   constructor(
-    @InjectRepository(OrderItems)
-    private orderItemsRepository: Repository<OrderItems>,
+    @InjectRepository(OrderItem)
+    private orderItemsRepository: Repository<OrderItem>,
   ) {}
 
-  findAll(): Promise<OrderItems[]> {
+  findAll(): Promise<OrderItem[]> {
     return this.orderItemsRepository.find();
   }
 
-  findByOrderId(id: number): Promise<OrderItems[]> {
+  findByOrderId(id: number): Promise<OrderItem[]> {
     return this.orderItemsRepository.findBy({ order_id: id });
   }
 
-  create(orderItems: CreateOrderItemDto[]): Promise<OrderItems[]> {
+  create(orderItems: CreateOrderItemDto[]): Promise<OrderItem[]> {
     return this.orderItemsRepository.save(orderItems);
   }
 
-  async update(id: number, partial: Partial<OrderItems>): Promise<OrderItems> {
+  async update(id: number, partial: Partial<OrderItem>): Promise<OrderItem> {
     const existing = await this.orderItemsRepository.findOne({
       where: { order_item_id: id },
       relations: ['order'],

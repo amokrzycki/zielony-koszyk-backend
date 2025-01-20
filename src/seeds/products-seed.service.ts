@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Products } from '../entities/products.entity';
+import { Product } from '../entities/product.entity';
 import vegatables from '../constants/vegatables';
 import fruits from '../constants/fruits';
 import others from '../constants/others';
@@ -11,8 +11,8 @@ import collective from '../constants/collective';
 @Injectable()
 export class ProductsSeedService {
   constructor(
-    @InjectRepository(Products)
-    private productsRepository: Repository<Products>,
+    @InjectRepository(Product)
+    private productsRepository: Repository<Product>,
   ) {}
 
   async seed() {

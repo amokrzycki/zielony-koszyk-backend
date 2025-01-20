@@ -13,7 +13,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { ProductsService } from '../services/products.service';
-import { Products } from '../entities/products.entity';
+import { Product } from '../entities/product.entity';
 import { CreateProductDto } from '../dto/create-product.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ApiBearerAuth } from '@nestjs/swagger';
@@ -25,7 +25,7 @@ export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Get()
-  getAll(): Promise<Products[]> {
+  getAll(): Promise<Product[]> {
     return this.productsService.findAll();
   }
 
@@ -62,7 +62,7 @@ export class ProductsController {
   }
 
   @Get(':id')
-  getOne(@Param('id') id: string): Promise<Products> {
+  getOne(@Param('id') id: string): Promise<Product> {
     return this.productsService.findOne(+id);
   }
 
@@ -73,7 +73,7 @@ export class ProductsController {
   create(
     @Body('product') productString: string,
     @UploadedFile() file?: Express.Multer.File,
-  ): Promise<Products> {
+  ): Promise<Product> {
     const product: CreateProductDto = JSON.parse(productString);
     return this.productsService.create(product, file);
   }
@@ -83,8 +83,8 @@ export class ProductsController {
   @Put(':id')
   update(
     @Param('id') id: string,
-    @Body() product: Partial<Products>,
-  ): Promise<Products> {
+    @Body() product: Partial<Product>,
+  ): Promise<Product> {
     return this.productsService.update(+id, product);
   }
 

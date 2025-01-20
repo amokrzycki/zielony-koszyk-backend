@@ -7,23 +7,30 @@ import {
   PrimaryGeneratedColumn,
   OneToMany,
 } from 'typeorm';
-import { Users } from './users.entity';
+import { User } from './user.entity';
 import { Statuses } from '../enums/Statuses';
-import { OrderItems } from './order-items.entity';
+import { OrderItem } from './order-item.entity';
 import { Exclude } from 'class-transformer';
+import { OrderType } from '../types/OrderType';
 
-@Entity()
-export class Orders {
+@Entity('orders')
+export class Order {
   @PrimaryGeneratedColumn()
   order_id: number;
 
   @Column('char', { length: 36, nullable: true })
   user_id: string;
 
-  @ManyToOne(() => Users)
+  @Column({ type: 'enum', enum: OrderType, default: OrderType.PRIVATE })
+  order_type: OrderType;
+
+  @Column({ nullable: true })
+  nip: string;
+
+  @ManyToOne(() => User)
   @Exclude()
   @JoinColumn({ name: 'user_id' })
-  user: Users;
+  user: User;
 
   @Column()
   customer_name: string;
@@ -46,9 +53,12 @@ export class Orders {
   @Column({ type: 'enum', enum: Statuses })
   status: Statuses;
 
-  @OneToMany(() => OrderItems, (orderItem) => orderItem.order, {
+  @OneToMany(() => OrderItem, (orderItem) => orderItem.order, {
     cascade: true,
     onDelete: 'CASCADE',
   })
-  orderItems: OrderItems[];
+  orderItems: OrderItem[];
+
+  @Column({ nullable: true })
+  invoice_path: string;
 }

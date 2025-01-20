@@ -6,31 +6,31 @@ import {
   PrimaryGeneratedColumn,
   Relation,
 } from 'typeorm';
-import { Orders } from './orders.entity';
-import { Products } from './products.entity';
+import { Order } from './order.entity';
+import { Product } from './product.entity';
 import { Exclude } from 'class-transformer';
 
 @Entity('order_items')
-export class OrderItems {
+export class OrderItem {
   @PrimaryGeneratedColumn()
   order_item_id: number;
 
   @Column()
   order_id: number;
 
-  @ManyToOne(() => Orders, (order) => order.orderItems, {
+  @ManyToOne(() => Order, (order) => order.orderItems, {
     onDelete: 'CASCADE',
   })
   @Exclude()
   @JoinColumn({ name: 'order_id' })
-  order: Orders;
+  order: Order;
 
   @Column({ nullable: true })
   product_id: number;
 
-  @ManyToOne(() => Products)
+  @ManyToOne(() => Product)
   @JoinColumn({ name: 'product_id' })
-  product: Relation<Products>;
+  product: Relation<Product>;
 
   @Column()
   product_name: string;

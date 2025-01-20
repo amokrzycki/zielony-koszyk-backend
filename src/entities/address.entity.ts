@@ -6,14 +6,30 @@ import {
   Relation,
   JoinColumn,
 } from 'typeorm';
-import { Users } from './users.entity';
+import { User } from './user.entity';
 import { AddressType } from '../enums/AddressType';
 import { Exclude } from 'class-transformer';
+import { CustomerType } from '../types/CustomerType';
 
-@Entity()
-export class Addresses {
+@Entity('addresses')
+export class Address {
   @PrimaryGeneratedColumn()
   address_id: number;
+
+  @Column({ nullable: true })
+  first_name: string;
+
+  @Column({ nullable: true })
+  last_name: string;
+
+  @Column({ nullable: true })
+  company_name: string;
+
+  @Column({ nullable: true })
+  nip: string;
+
+  @Column()
+  phone: string;
 
   @Column()
   street: string;
@@ -36,11 +52,18 @@ export class Addresses {
   })
   type: AddressType;
 
+  @Column({
+    type: 'enum',
+    enum: CustomerType,
+    default: CustomerType.PERSON,
+  })
+  customer_type: CustomerType;
+
   @Exclude()
   @Column('char', { length: 36, nullable: true })
   user_id: string;
 
-  @ManyToOne(() => Users, (user) => user.addresses, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, (user) => user.addresses, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
-  user: Relation<Users>;
+  user: Relation<User>;
 }

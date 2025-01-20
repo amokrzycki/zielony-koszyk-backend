@@ -24,6 +24,7 @@ services:
     volumes:
       - ./src:/app/src
       - ./uploads:/app/uploads
+      - ./invoices:/app/invoices
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin

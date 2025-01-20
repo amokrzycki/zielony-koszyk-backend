@@ -7,23 +7,23 @@ import {
   DataSource,
   EntityManager,
 } from 'typeorm';
-import { OrderItems } from '../entities/order-items.entity';
-import { Orders } from '../entities/orders.entity';
+import { OrderItem } from '../entities/order-item.entity';
+import { Order } from '../entities/order.entity';
 
 @EventSubscriber()
 export class OrderItemsSubscriber
-  implements EntitySubscriberInterface<OrderItems>
+  implements EntitySubscriberInterface<OrderItem>
 {
   constructor(private dataSource: DataSource) {
     this.dataSource.subscribers.push(this);
   }
 
   listenTo() {
-    return OrderItems;
+    return OrderItem;
   }
 
-  async afterInsert(event: InsertEvent<OrderItems>) {
-    const itemRepo = event.manager.getRepository(OrderItems);
+  async afterInsert(event: InsertEvent<OrderItem>) {
+    const itemRepo = event.manager.getRepository(OrderItem);
 
     const newItem = await itemRepo.findOne({
       where: { order_item_id: event.entity?.order_item_id },
@@ -41,8 +41,8 @@ export class OrderItemsSubscriber
     await this.recalcOrderTotal(newItem.order.order_id, event.manager);
   }
 
-  async afterUpdate(event: UpdateEvent<OrderItems>) {
-    const itemRepo = event.manager.getRepository(OrderItems);
+  async afterUpdate(event: UpdateEvent<OrderItem>) {
+    const itemRepo = event.manager.getRepository(OrderItem);
 
     const updatedItem = await itemRepo.findOne({
       where: { order_item_id: event.entity?.order_item_id },
@@ -60,8 +60,8 @@ export class OrderItemsSubscriber
     await this.recalcOrderTotal(updatedItem.order.order_id, event.manager);
   }
 
-  async afterRemove(event: RemoveEvent<OrderItems>) {
-    const itemRepo = event.manager.getRepository(OrderItems);
+  async afterRemove(event: RemoveEvent<OrderItem>) {
+    const itemRepo = event.manager.getRepository(OrderItem);
 
     const removedItem = await itemRepo.findOne({
       where: { order_item_id: event.entity?.order_item_id },
@@ -80,7 +80,7 @@ export class OrderItemsSubscriber
   }
 
   private async recalcOrderTotal(orderId: number, manager: EntityManager) {
-    const orderRepo = manager.getRepository(Orders);
+    const orderRepo = manager.getRepository(Order);
 
     const order = await orderRepo.findOne({
       where: { order_id: orderId },

@@ -1,7 +1,7 @@
-import { Products } from '../entities/products.entity';
+import { Product } from '../entities/product.entity';
 
 export interface PageableProducts {
-  data: Products[];
+  data: Product[];
   totalCount: number;
   currentPage: number;
   pageSize: number;
