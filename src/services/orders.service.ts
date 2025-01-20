@@ -62,7 +62,6 @@ export class OrdersService {
       order.order_type = createOrderDto.order_type;
 
       if (createOrderDto.order_type === 'COMPANY') {
-        order.customer_name = createOrderDto.company_name;
         order.nip = createOrderDto.nip;
       }
 

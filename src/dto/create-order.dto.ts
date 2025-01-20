@@ -19,10 +19,6 @@ export class CreateOrderDto {
 
   @ValidateIf((o) => o.order_type === OrderType.COMPANY)
   @IsString()
-  company_name?: string;
-
-  @ValidateIf((o) => o.order_type === OrderType.COMPANY)
-  @IsString()
   nip?: string;
 
   @IsNotEmpty()

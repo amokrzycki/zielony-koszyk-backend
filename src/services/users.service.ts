@@ -10,7 +10,6 @@ import * as bcrypt from 'bcrypt';
 import { SALT_ROUNDS } from '../constants/constants';
 import { UpdatePassword } from '../types/UpdatePassword';
 import { Address } from '../entities/address.entity';
-import { UpdateAddressDto } from '../dto/update-address.dto';
 import { CreateAddressDto } from '../dto/create-address.dto';
 import { RegisterUserDto } from '../dto/register-user.dto';
 import { AddressType } from '../enums/AddressType';
