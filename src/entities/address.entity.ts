@@ -60,10 +60,20 @@ export class Address {
   customer_type: CustomerType;
 
   @Exclude()
+  @Column({ default: false })
+  is_user_address: boolean;
+
+  @Column({ default: true })
+  default: boolean;
+
+  @Exclude()
   @Column('char', { length: 36, nullable: true })
   user_id: string;
 
-  @ManyToOne(() => User, (user) => user.addresses, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, (user) => user.addresses, {
+    onDelete: 'CASCADE',
+    nullable: true,
+  })
   @JoinColumn({ name: 'user_id' })
   user: Relation<User>;
 }

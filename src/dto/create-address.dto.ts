@@ -48,6 +48,9 @@ export class CreateAddressDto {
   @IsEnum(AddressType)
   type: AddressType;
 
+  @IsOptional()
+  default: boolean;
+
   @IsEnum(CustomerType)
   customer_type: CustomerType;
 }

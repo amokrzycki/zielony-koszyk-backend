@@ -9,9 +9,10 @@ import { Statuses } from '../enums/Statuses';
 import { MailService } from './mail.service';
 import { OrderItem } from '../entities/order-item.entity';
 import { InvoiceService } from './invoice.service';
+import { Address } from '../entities/address.entity';
 
 @Injectable()
-export class OrdersService {
+export class OrderService {
   constructor(
     @InjectRepository(Order)
     private ordersRepository: Repository<Order>,
@@ -41,6 +42,9 @@ export class OrdersService {
 
     await this.dataSource.transaction(async (manager) => {
       const order = new Order();
+      order.status = Statuses.NEW;
+      order.order_type = createOrderDto.order_type;
+      order.customer_email = createOrderDto.customer_email;
 
       if (createOrderDto.user_id) {
         const user = await manager.getRepository(User).findOne({
@@ -54,16 +58,11 @@ export class OrdersService {
         order.user = user;
       }
 
-      order.customer_name = createOrderDto.customer_name;
-      order.customer_email = createOrderDto.customer_email;
-      order.customer_phone = createOrderDto.customer_phone;
-      order.customer_address = createOrderDto.customer_address;
-      order.status = Statuses.NEW;
-      order.order_type = createOrderDto.order_type;
-
       if (createOrderDto.order_type === 'COMPANY') {
         order.nip = createOrderDto.nip;
       }
+
+      await this.createAddresses(order, createOrderDto, manager);
 
       order.orderItems = await this.createOrderItems(
         order,
@@ -71,13 +70,7 @@ export class OrdersService {
         manager,
       );
 
-      const shippingOrderDetail = new OrderItem();
-      shippingOrderDetail.product_name = 'Dostawa';
-      shippingOrderDetail.quantity = 1;
-      shippingOrderDetail.price = 10;
-      shippingOrderDetail.order_id = order.order_id;
-      shippingOrderDetail.order = order;
-      order.orderItems.push(shippingOrderDetail);
+      order.orderItems.push(this.addDeliveryCost(order));
 
       order.total_amount = order.orderItems.reduce(
         (total, item) => total + item.price * item.quantity,
@@ -88,7 +81,10 @@ export class OrdersService {
     });
 
     // Generate invoice PDF after the transaction to have the order ID and save the invoice path
-    const pdfBuffer = await this.invoiceService.generateInvoicePDF(savedOrder);
+    const pdfBuffer = await this.invoiceService.generateInvoicePDF(
+      savedOrder,
+      createOrderDto.same_address,
+    );
 
     const invoicePath = await this.invoiceService.saveInvoiceToDisk(
       savedOrder,
@@ -145,5 +141,62 @@ export class OrdersService {
     }
 
     return orderItems;
+  }
+
+  private addDeliveryCost(order: Order) {
+    const shippingOrderDetail = new OrderItem();
+    shippingOrderDetail.product_name = 'Dostawa';
+    shippingOrderDetail.quantity = 1;
+    shippingOrderDetail.price = 10;
+    shippingOrderDetail.order_id = order.order_id;
+    shippingOrderDetail.order = order;
+
+    return shippingOrderDetail;
+  }
+
+  private async createAddresses(
+    order: Order,
+    createOrderDto: CreateOrderDto,
+    manager: EntityManager,
+  ): Promise<void> {
+    if (createOrderDto.billingAddress) {
+      const billingAddress = manager.getRepository(Address).create({
+        ...createOrderDto.billingAddress,
+      });
+
+      if (order.user) {
+        billingAddress.user = order.user;
+      }
+
+      if (createOrderDto.same_address) {
+        order.billingAddress = await manager
+          .getRepository(Address)
+          .save(billingAddress);
+
+        order.shippingAddress = await manager
+          .getRepository(Address)
+          .save(billingAddress);
+      } else {
+        order.billingAddress = await manager
+          .getRepository(Address)
+          .save(billingAddress);
+      }
+    }
+
+    if (createOrderDto.shippingAddress && !createOrderDto.same_address) {
+      const shippingAddress = manager.getRepository(Address).create({
+        ...createOrderDto.shippingAddress,
+      });
+
+      if (order.user) {
+        shippingAddress.user = order.user;
+      }
+
+      order.shippingAddress = await manager
+        .getRepository(Address)
+        .save(shippingAddress);
+
+      console.log('order.shippingAddress', order.shippingAddress);
+    }
   }
 }

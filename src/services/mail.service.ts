@@ -9,6 +9,7 @@ import * as path from 'node:path';
 import { formatDate } from '../utils/formatDate';
 import FormData from 'form-data';
 import { User } from '../entities/user.entity';
+import { OrderType } from '../types/OrderType';
 
 // TODO: Password change email confirmation
 // TODO: Email change email confirmation
@@ -41,9 +42,16 @@ export class MailService {
     );
     const template = Handlebars.compile(templateSource);
 
+    const customer_name =
+      order.order_type === OrderType.COMPANY
+        ? order.billingAddress.company_name
+        : order.billingAddress.first_name +
+          ' ' +
+          order.billingAddress.last_name;
+
     // Generate the email content
     const html = template({
-      customer_name: order.customer_name,
+      customer_name,
       order_id: order.order_id,
       order_date: formatDate(order.order_date),
       total_amount: order.total_amount,

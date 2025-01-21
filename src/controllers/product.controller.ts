@@ -12,7 +12,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { ProductsService } from '../services/products.service';
+import { ProductService } from '../services/product.service';
 import { Product } from '../entities/product.entity';
 import { CreateProductDto } from '../dto/create-product.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -21,8 +21,8 @@ import { PageableProducts } from '../types/PageableProducts';
 import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('products')
-export class ProductsController {
-  constructor(private readonly productsService: ProductsService) {}
+export class ProductController {
+  constructor(private readonly productsService: ProductService) {}
 
   @Get()
   getAll(): Promise<Product[]> {

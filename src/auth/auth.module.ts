@@ -2,20 +2,20 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { UsersModule } from '../modules/users.module';
+import { UserModule } from '../modules/user.module';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
 import { AuthController } from './auth.controller';
-import { ProductsModule } from '../modules/products.module';
-import { OrdersModule } from '../modules/orders.module';
-import { OrderItemsModule } from '../modules/order-items.module';
+import { ProductModule } from '../modules/product.module';
+import { OrderModule } from '../modules/order.module';
+import { OrderItemModule } from '../modules/order-item.module';
 
 @Module({
   imports: [
-    UsersModule,
-    ProductsModule,
-    OrdersModule,
-    OrderItemsModule,
+    UserModule,
+    ProductModule,
+    OrderModule,
+    OrderItemModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

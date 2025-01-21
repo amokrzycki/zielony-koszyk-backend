@@ -11,7 +11,7 @@ import { OrderItem } from '../entities/order-item.entity';
 import { Order } from '../entities/order.entity';
 
 @EventSubscriber()
-export class OrderItemsSubscriber
+export class OrderItemSubscriber
   implements EntitySubscriberInterface<OrderItem>
 {
   constructor(private dataSource: DataSource) {

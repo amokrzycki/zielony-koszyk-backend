@@ -6,7 +6,10 @@ import { Order } from '../entities/order.entity';
 
 @Injectable()
 export class InvoiceService {
-  async generateInvoicePDF(order: Order): Promise<Buffer> {
+  async generateInvoicePDF(
+    order: Order,
+    same_address: boolean,
+  ): Promise<Buffer> {
     const doc = new PDFDocument({
       size: 'A4',
       margins: { top: 50, bottom: 50, left: 50, right: 50 },
@@ -63,22 +66,55 @@ export class InvoiceService {
       .fontSize(12)
       .text(`Numer zamówienia: ${order.order_id}`)
       .text(`Data zamówienia: ${order.order_date.toLocaleDateString()}`)
-      .text(`Nabywca:`);
+      .text(
+        `${same_address ? 'Dane do faktury i dostawy' : 'Dane do faktury'}:`,
+      );
 
     if (order.order_type === 'COMPANY') {
-      doc.text(`Firma: ${order.customer_name}`);
+      doc.text(`Firma: ${order.billingAddress.company_name}`);
       doc.text(`NIP: ${order.nip}`);
     } else {
-      doc.text(`Imię i nazwisko: ${order.customer_name}`);
+      doc.text(
+        `Imię i nazwisko: ${order.billingAddress.first_name} ${order.billingAddress.last_name}`,
+      );
     }
 
     doc
-      .text(`Adres: ${order.customer_address}`)
+      .text(
+        `Adres: ${order.billingAddress.street} ${order.billingAddress.building_number}${order.billingAddress.flat_number ? `/${order.billingAddress.flat_number}` : ''} ${order.billingAddress.zip}, ${order.billingAddress.city}`,
+      )
       .text(`Email: ${order.customer_email}`)
-      .text(`Telefon: ${order.customer_phone}`);
+      .text(`Telefon: ${order.billingAddress.phone}`);
 
     doc.moveDown();
+
     this.drawLine(doc);
+
+    if (!same_address) {
+      doc
+        .moveDown(0.5)
+        .font('OpenSansRegular')
+        .fontSize(12)
+        .text('Dane do dostawy:');
+
+      if (order.order_type === 'COMPANY') {
+        doc.text(`Firma: ${order.shippingAddress.company_name}`);
+        doc.text(`NIP: ${order.nip}`);
+      } else {
+        doc.text(
+          `Imię i nazwisko: ${order.shippingAddress.first_name} ${order.shippingAddress.last_name}`,
+        );
+      }
+      doc
+        .text(`Telefon: ${order.shippingAddress.phone}`)
+        .text(
+          `Adres: ${order.shippingAddress.street} ${order.shippingAddress.building_number} ${order.shippingAddress.flat_number ? `/${order.shippingAddress.flat_number}` : ''} ${order.shippingAddress.zip}, ${order.shippingAddress.city}`,
+        );
+
+      doc.moveDown();
+
+      this.drawLine(doc);
+    }
 
     doc
       .moveDown(1)

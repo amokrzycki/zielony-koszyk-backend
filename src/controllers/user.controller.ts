@@ -8,12 +8,11 @@ import {
   Put,
   UseGuards,
 } from '@nestjs/common';
-import { UsersService } from '../services/users.service';
+import { UserService } from '../services/user.service';
 import { User } from '../entities/user.entity';
 import { RegisterUserDto } from '../dto/register-user.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UpdatePassword } from '../types/UpdatePassword';
-import { UpdateAddressDto } from '../dto/update-address.dto';
 import { Address } from '../entities/address.entity';
 import { CreateAddressDto } from '../dto/create-address.dto';
 import { ApiBearerAuth } from '@nestjs/swagger';
@@ -23,8 +22,8 @@ import { CreateUserDto } from '../dto/create-user.dto';
 // TODO: Reset password flow
 
 @Controller('users')
-export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+export class UserController {
+  constructor(private readonly usersService: UserService) {}
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)

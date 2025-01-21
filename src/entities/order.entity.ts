@@ -12,6 +12,7 @@ import { Statuses } from '../enums/Statuses';
 import { OrderItem } from './order-item.entity';
 import { Exclude } from 'class-transformer';
 import { OrderType } from '../types/OrderType';
+import { Address } from './address.entity';
 
 @Entity('orders')
 export class Order {
@@ -33,16 +34,21 @@ export class Order {
   user: User;
 
   @Column()
-  customer_name: string;
-
-  @Column()
   customer_email: string;
 
-  @Column()
-  customer_phone: string;
+  @ManyToOne(() => Address, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'billing_address_id' })
+  billingAddress: Address;
 
-  @Column()
-  customer_address: string;
+  @ManyToOne(() => Address, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'shipping_address_id' })
+  shippingAddress: Address;
 
   @CreateDateColumn()
   order_date: Date;

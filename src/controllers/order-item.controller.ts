@@ -8,7 +8,7 @@ import {
   Put,
   UseGuards,
 } from '@nestjs/common';
-import { OrderItemsService } from '../services/order-items.service';
+import { OrderItemService } from '../services/order-item.service';
 import { OrderItem } from '../entities/order-item.entity';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ApiBearerAuth } from '@nestjs/swagger';
@@ -16,8 +16,8 @@ import { CreateOrderItemDto } from '../dto/create-order-item.dto';
 
 @ApiBearerAuth()
 @Controller('order-items')
-export class OrderItemsController {
-  constructor(private readonly orderItemsService: OrderItemsService) {}
+export class OrderItemController {
+  constructor(private readonly orderItemsService: OrderItemService) {}
 
   @UseGuards(JwtAuthGuard)
   @Get()

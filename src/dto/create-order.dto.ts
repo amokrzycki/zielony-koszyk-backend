@@ -9,6 +9,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { OrderType } from '../types/OrderType';
+import { CreateAddressDto } from './create-address.dto';
 
 export class CreateOrderDto {
   @IsOptional()
@@ -21,17 +22,21 @@ export class CreateOrderDto {
   @IsString()
   nip?: string;
 
-  @IsNotEmpty()
-  customer_name?: string;
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CreateAddressDto)
+  billingAddress?: CreateAddressDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CreateAddressDto)
+  shippingAddress?: CreateAddressDto;
+
+  @IsOptional()
+  same_address: boolean;
 
   @IsNotEmpty()
   customer_email?: string;
-
-  @IsNotEmpty()
-  customer_phone?: string;
-
-  @IsNotEmpty()
-  customer_address?: string;
 
   @IsNotEmpty()
   @ValidateNested({ each: true })

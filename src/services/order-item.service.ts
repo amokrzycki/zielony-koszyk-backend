@@ -5,7 +5,7 @@ import { OrderItem } from '../entities/order-item.entity';
 import { CreateOrderItemDto } from '../dto/create-order-item.dto';
 
 @Injectable()
-export class OrderItemsService {
+export class OrderItemService {
   constructor(
     @InjectRepository(OrderItem)
     private orderItemsRepository: Repository<OrderItem>,

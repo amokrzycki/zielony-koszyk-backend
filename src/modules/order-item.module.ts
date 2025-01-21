@@ -1,27 +1,27 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { OrderItemsService } from '../services/order-items.service';
-import { OrderItemsController } from '../controllers/order-items.controller';
-import { OrdersModule } from './orders.module';
-import { ProductsModule } from './products.module';
+import { OrderItemService } from '../services/order-item.service';
+import { OrderItemController } from '../controllers/order-item.controller';
+import { OrderModule } from './order.module';
+import { ProductModule } from './product.module';
 import { OrderItem } from '../entities/order-item.entity';
 import { Order } from '../entities/order.entity';
-import { OrderItemsSubscriber } from '../subscribers/order-items.subscriber';
+import { OrderItemSubscriber } from '../subscribers/order-item.subscriber';
 import { DataSource } from 'typeorm';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([OrderItem, Order]),
-    OrdersModule,
-    ProductsModule,
+    OrderModule,
+    ProductModule,
   ],
-  controllers: [OrderItemsController],
+  controllers: [OrderItemController],
   providers: [
-    OrderItemsService,
+    OrderItemService,
     {
       provide: 'ORDER_ITEM_SUBSCRIBER',
       useFactory: (dataSource: DataSource) => {
-        const subscriber = new OrderItemsSubscriber(dataSource);
+        const subscriber = new OrderItemSubscriber(dataSource);
         dataSource.subscribers.push(subscriber);
         return subscriber;
       },
@@ -29,4 +29,4 @@ import { DataSource } from 'typeorm';
     },
   ],
 })
-export class OrderItemsModule {}
+export class OrderItemModule {}

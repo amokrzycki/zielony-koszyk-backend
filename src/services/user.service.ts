@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Not } from 'typeorm';
 import { User } from '../entities/user.entity';
 import * as bcrypt from 'bcrypt';
 import { SALT_ROUNDS } from '../constants/constants';
@@ -20,7 +20,7 @@ import { generateRandomPassword } from '../utils/generateRandomPassword';
 import { CustomerType } from '../types/CustomerType';
 
 @Injectable()
-export class UsersService {
+export class UserService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
@@ -188,7 +188,12 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    const address = this.addressesRepository.create({ ...addressDto, user });
+    const address = this.addressesRepository.create({
+      ...addressDto,
+      user,
+      is_user_address: true,
+      default: false,
+    });
     await this.addressesRepository.save(address);
 
     return this.usersRepository.findOne({
@@ -235,6 +240,20 @@ export class UsersService {
       updateDto.nip = null;
     }
 
+    // find the address with the same type that is in the payload, if default is in payload, change default to false
+    const addressWithSameType = await this.addressesRepository.findOne({
+      where: {
+        type: updateDto.type,
+        address_id: Not(addressId),
+        default: true,
+      },
+    });
+
+    if (addressWithSameType) {
+      addressWithSameType.default = false;
+      await this.addressesRepository.save(addressWithSameType);
+    }
+
     Object.assign(address, updateDto);
     await this.addressesRepository.save(address);
 
@@ -273,6 +292,7 @@ export class UsersService {
       type: AddressType.BILLING,
       customer_type: CustomerType.PERSON,
       user: savedUser,
+      is_user_address: true,
     });
 
     const deliveryAddress = this.addressesRepository.create({
@@ -287,6 +307,7 @@ export class UsersService {
       type: AddressType.DELIVERY,
       customer_type: CustomerType.PERSON,
       user: savedUser,
+      is_user_address: true,
     });
 
     return [billingAddress, deliveryAddress];
