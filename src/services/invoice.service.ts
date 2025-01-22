@@ -72,7 +72,7 @@ export class InvoiceService {
 
     if (order.order_type === 'COMPANY') {
       doc.text(`Firma: ${order.billingAddress.company_name}`);
-      doc.text(`NIP: ${order.nip}`);
+      doc.text(`NIP: ${order.billingAddress.nip}`);
     } else {
       doc.text(
         `Imię i nazwisko: ${order.billingAddress.first_name} ${order.billingAddress.last_name}`,
@@ -99,7 +99,7 @@ export class InvoiceService {
 
       if (order.order_type === 'COMPANY') {
         doc.text(`Firma: ${order.shippingAddress.company_name}`);
-        doc.text(`NIP: ${order.nip}`);
+        doc.text(`NIP: ${order.shippingAddress.nip}`);
       } else {
         doc.text(
           `Imię i nazwisko: ${order.shippingAddress.first_name} ${order.shippingAddress.last_name}`,

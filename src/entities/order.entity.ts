@@ -25,9 +25,6 @@ export class Order {
   @Column({ type: 'enum', enum: OrderType, default: OrderType.PRIVATE })
   order_type: OrderType;
 
-  @Column({ nullable: true })
-  nip: string;
-
   @ManyToOne(() => User)
   @Exclude()
   @JoinColumn({ name: 'user_id' })

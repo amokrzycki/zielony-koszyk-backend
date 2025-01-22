@@ -41,5 +41,5 @@ export class CreateOrderDto {
   @IsNotEmpty()
   @ValidateNested({ each: true })
   @Type(() => CreateOrderItemDto)
-  orderDetails: CreateOrderItemDto[];
+  orderItems: CreateOrderItemDto[];
 }

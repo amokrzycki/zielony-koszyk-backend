@@ -26,11 +26,16 @@ export class OrderService {
   ) {}
 
   findAll(): Promise<Order[]> {
-    return this.ordersRepository.find();
+    return this.ordersRepository.find({
+      relations: ['billingAddress', 'shippingAddress'],
+    });
   }
 
   async findOrderByOrderId(id: number): Promise<Order> {
-    return this.ordersRepository.findOneBy({ order_id: id });
+    return this.ordersRepository.findOne({
+      where: { order_id: id },
+      relations: ['billingAddress', 'shippingAddress'],
+    });
   }
 
   findOrdersByUserId(id: string): Promise<Order[]> {
@@ -58,15 +63,11 @@ export class OrderService {
         order.user = user;
       }
 
-      if (createOrderDto.order_type === 'COMPANY') {
-        order.nip = createOrderDto.nip;
-      }
-
       await this.createAddresses(order, createOrderDto, manager);
 
       order.orderItems = await this.createOrderItems(
         order,
-        createOrderDto.orderDetails,
+        createOrderDto.orderItems,
         manager,
       );
 
@@ -115,7 +116,7 @@ export class OrderService {
 
   private async createOrderItems(
     order: Order,
-    orderDetails: CreateOrderDto['orderDetails'],
+    orderDetails: CreateOrderDto['orderItems'],
     manager: EntityManager,
   ): Promise<OrderItem[]> {
     const orderItems: OrderItem[] = [];
@@ -183,7 +184,7 @@ export class OrderService {
       }
     }
 
-    if (createOrderDto.shippingAddress && !createOrderDto.same_address) {
+    if (!createOrderDto.same_address) {
       const shippingAddress = manager.getRepository(Address).create({
         ...createOrderDto.shippingAddress,
       });
@@ -195,8 +196,6 @@ export class OrderService {
       order.shippingAddress = await manager
         .getRepository(Address)
         .save(shippingAddress);
-
-      console.log('order.shippingAddress', order.shippingAddress);
     }
   }
 }
