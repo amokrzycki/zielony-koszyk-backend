@@ -63,6 +63,8 @@ export class OrderController {
       );
     }
 
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename="invoice.pdf"');
     res.sendFile(order.invoice_path, { root: '.' });
   }
 

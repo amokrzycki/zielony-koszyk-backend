@@ -272,8 +272,7 @@ export class UserService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
-
-    return user.addresses;
+    return user.addresses.filter((addr) => addr.is_user_address === true);
   }
 
   private createAddresses(

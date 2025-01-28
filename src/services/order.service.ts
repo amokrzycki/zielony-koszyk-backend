@@ -122,13 +122,14 @@ export class OrderService {
     const orderItems: OrderItem[] = [];
 
     for (const detail of orderDetails) {
+      console.log(detail.product_id);
       const orderDetail = new OrderItem();
       const product = await manager.getRepository(Product).findOne({
-        where: { product_id: detail.productId },
+        where: { product_id: detail.product_id },
       });
 
       if (!product) {
-        throw new Error(`Product with ID ${detail.productId} not found`);
+        throw new Error(`Product with ID ${detail.product_id} not found`);
       }
 
       orderDetail.product = product;
