@@ -3,14 +3,11 @@ import {
   IsEnum,
   IsNotEmpty,
   IsOptional,
-  IsString,
-  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { OrderType } from '../types/OrderType';
 import { CreateAddressDto } from './create-address.dto';
-import { Order } from '../entities/order.entity';
 
 export class CreateOrderDto {
   @IsOptional()
@@ -18,10 +15,6 @@ export class CreateOrderDto {
 
   @IsEnum(OrderType, { message: 'Invalid order type' })
   order_type: OrderType;
-
-  @ValidateIf((o: Order) => o.order_type === OrderType.COMPANY)
-  @IsString()
-  nip?: string;
 
   @IsOptional()
   @ValidateNested()
@@ -37,7 +30,7 @@ export class CreateOrderDto {
   same_address: boolean;
 
   @IsNotEmpty()
-  customer_email?: string;
+  customer_email: string;
 
   @IsNotEmpty()
   @ValidateNested({ each: true })

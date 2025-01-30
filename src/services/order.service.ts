@@ -54,7 +54,9 @@ export class OrderService {
         });
 
         if (!user) {
-          throw new Error(`User with ID ${createOrderDto.user_id} not found`);
+          throw new NotFoundException(
+            `User with ID ${createOrderDto.user_id} not found`,
+          );
         }
         order.user_id = user.user_id;
         order.user = user;
@@ -93,11 +95,7 @@ export class OrderService {
 
     await this.ordersRepository.save(savedOrder);
 
-    try {
-      await this.mailService.sendOrderConfirmation(savedOrder, pdfBuffer);
-    } catch (error) {
-      console.error('Error sending order confirmation email:', error);
-    }
+    await this.mailService.sendOrderConfirmation(savedOrder, pdfBuffer);
 
     return savedOrder;
   }
