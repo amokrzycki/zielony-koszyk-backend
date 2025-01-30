@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  NotFoundException,
   Param,
   ParseIntPipe,
   Post,
@@ -74,6 +75,10 @@ export class ProductController {
     @Body('product') productString: string,
     @UploadedFile() file?: Express.Multer.File,
   ): Promise<Product> {
+    if (!productString) {
+      throw new NotFoundException('Product data not provided');
+    }
+
     const product = JSON.parse(productString) as CreateProductDto;
     return this.productsService.create(product, file);
   }
