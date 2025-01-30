@@ -4,13 +4,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Users } from '../entities/users.entity';
+import { Repository, Not } from 'typeorm';
+import { User } from '../entities/user.entity';
 import * as bcrypt from 'bcrypt';
 import { SALT_ROUNDS } from '../constants/constants';
 import { UpdatePassword } from '../types/UpdatePassword';
-import { Addresses } from '../entities/addresses.entity';
-import { UpdateAddressDto } from '../dto/update-address.dto';
+import { Address } from '../entities/address.entity';
 import { CreateAddressDto } from '../dto/create-address.dto';
 import { RegisterUserDto } from '../dto/register-user.dto';
 import { AddressType } from '../enums/AddressType';
@@ -18,30 +17,31 @@ import { UpdateUserDto } from '../dto/update-user.dto';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { MailService } from './mail.service';
 import { generateRandomPassword } from '../utils/generateRandomPassword';
+import { CustomerType } from '../types/CustomerType';
 
 @Injectable()
-export class UsersService {
+export class UserService {
   constructor(
-    @InjectRepository(Users)
-    private usersRepository: Repository<Users>,
-    @InjectRepository(Addresses)
-    private addressesRepository: Repository<Addresses>,
+    @InjectRepository(User)
+    private usersRepository: Repository<User>,
+    @InjectRepository(Address)
+    private addressesRepository: Repository<Address>,
     private mailService: MailService,
   ) {}
 
-  findAll(): Promise<Users[]> {
+  findAll(): Promise<User[]> {
     return this.usersRepository.find();
   }
 
-  findByEmail(email: string): Promise<Users> {
+  findByEmail(email: string): Promise<User> {
     return this.usersRepository.findOneBy({ email: email });
   }
 
-  findById(id: string): Promise<Users> {
+  findById(id: string): Promise<User> {
     return this.usersRepository.findOneBy({ user_id: id });
   }
 
-  async create(user: RegisterUserDto): Promise<Users> {
+  async create(user: RegisterUserDto): Promise<User> {
     const existingUser = await this.usersRepository.findOneBy({
       email: user.email,
     });
@@ -61,25 +61,10 @@ export class UsersService {
 
     delete savedUser.password;
 
-    const billingAddress = this.addressesRepository.create({
-      street: user.street,
-      city: user.city,
-      zip: user.zip,
-      building_number: user.building_number,
-      flat_number: user.flat_number,
-      type: AddressType.BILLING,
-      user: savedUser,
-    });
-
-    const deliveryAddress = this.addressesRepository.create({
-      street: user.street,
-      city: user.city,
-      zip: user.zip,
-      building_number: user.building_number,
-      flat_number: user.flat_number,
-      type: AddressType.DELIVERY,
-      user: savedUser,
-    });
+    const [billingAddress, deliveryAddress] = this.createAddresses(
+      user,
+      savedUser,
+    );
 
     await this.addressesRepository.save([billingAddress, deliveryAddress]);
 
@@ -89,7 +74,7 @@ export class UsersService {
     });
   }
 
-  async createUserFromAdmin(user: CreateUserDto): Promise<Users> {
+  async createUserFromAdmin(user: CreateUserDto): Promise<User> {
     const existingUser = await this.usersRepository.findOneBy({
       email: user.email,
     });
@@ -111,25 +96,10 @@ export class UsersService {
 
     delete savedUser.password;
 
-    const billingAddress = this.addressesRepository.create({
-      street: user.street,
-      city: user.city,
-      zip: user.zip,
-      building_number: user.building_number,
-      flat_number: user.flat_number,
-      type: AddressType.BILLING,
-      user: savedUser,
-    });
-
-    const deliveryAddress = this.addressesRepository.create({
-      street: user.street,
-      city: user.city,
-      zip: user.zip,
-      building_number: user.building_number,
-      flat_number: user.flat_number,
-      type: AddressType.DELIVERY,
-      user: savedUser,
-    });
+    const [billingAddress, deliveryAddress] = this.createAddresses(
+      user,
+      savedUser,
+    );
 
     await this.addressesRepository.save([billingAddress, deliveryAddress]);
 
@@ -148,7 +118,7 @@ export class UsersService {
     });
   }
 
-  async update(id: string, user: UpdateUserDto): Promise<Users> {
+  async update(id: string, user: UpdateUserDto): Promise<User> {
     const userToUpdate = await this.usersRepository.findOneBy({ user_id: id });
 
     if (!userToUpdate) {
@@ -169,7 +139,7 @@ export class UsersService {
     });
   }
 
-  async updatePassword(id: string, user: UpdatePassword): Promise<Users> {
+  async updatePassword(id: string, user: UpdatePassword): Promise<User> {
     const userToUpdate = await this.usersRepository.findOneBy({ user_id: id });
 
     if (!userToUpdate) {
@@ -209,7 +179,7 @@ export class UsersService {
   async addAddressToUser(
     userId: string,
     addressDto: CreateAddressDto,
-  ): Promise<Users> {
+  ): Promise<User> {
     const user = await this.usersRepository.findOne({
       where: { user_id: userId },
     });
@@ -218,7 +188,12 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    const address = this.addressesRepository.create({ ...addressDto, user });
+    const address = this.addressesRepository.create({
+      ...addressDto,
+      user,
+      is_user_address: true,
+      default: false,
+    });
     await this.addressesRepository.save(address);
 
     return this.usersRepository.findOne({
@@ -230,8 +205,8 @@ export class UsersService {
   async updateUserDetails(
     userId: string,
     addressId: number,
-    updateDto: UpdateAddressDto,
-  ): Promise<Users> {
+    updateDto: CreateAddressDto,
+  ): Promise<User> {
     const user = await this.usersRepository.findOne({
       where: { user_id: userId },
     });
@@ -241,7 +216,6 @@ export class UsersService {
     }
 
     await this.usersRepository.update(userId, {
-      phone: updateDto.phone,
       updated_at: new Date(),
     });
 
@@ -256,10 +230,31 @@ export class UsersService {
       );
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { phone, ...filteredDto } = updateDto;
+    if (updateDto.customer_type === CustomerType.COMPANY) {
+      updateDto.first_name = null;
+      updateDto.last_name = null;
+    }
 
-    Object.assign(address, filteredDto);
+    if (updateDto.customer_type === CustomerType.PERSON) {
+      updateDto.company_name = null;
+      updateDto.nip = null;
+    }
+
+    // find the address with the same type that is in the payload, if default is in payload, change default to false
+    const addressWithSameType = await this.addressesRepository.findOne({
+      where: {
+        type: updateDto.type,
+        address_id: Not(addressId),
+        default: true,
+      },
+    });
+
+    if (addressWithSameType && updateDto.default) {
+      addressWithSameType.default = false;
+      await this.addressesRepository.save(addressWithSameType);
+    }
+
+    Object.assign(address, updateDto);
     await this.addressesRepository.save(address);
 
     return this.usersRepository.findOne({
@@ -268,7 +263,7 @@ export class UsersService {
     });
   }
 
-  async getUserAddresses(userId: string): Promise<Addresses[]> {
+  async getUserAddresses(userId: string): Promise<Address[]> {
     const user = await this.usersRepository.findOne({
       where: { user_id: userId },
       relations: ['addresses'],
@@ -277,7 +272,43 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
+    return user.addresses.filter((addr) => addr.is_user_address === true);
+  }
 
-    return user.addresses;
+  private createAddresses(
+    user: CreateUserDto | RegisterUserDto,
+    savedUser: User,
+  ) {
+    const billingAddress = this.addressesRepository.create({
+      first_name: user.first_name,
+      last_name: user.last_name,
+      phone: user.phone,
+      street: user.street,
+      city: user.city,
+      zip: user.zip,
+      building_number: user.building_number,
+      flat_number: user.flat_number,
+      type: AddressType.BILLING,
+      customer_type: CustomerType.PERSON,
+      user: savedUser,
+      is_user_address: true,
+    });
+
+    const deliveryAddress = this.addressesRepository.create({
+      first_name: user.first_name,
+      last_name: user.last_name,
+      phone: user.phone,
+      street: user.street,
+      city: user.city,
+      zip: user.zip,
+      building_number: user.building_number,
+      flat_number: user.flat_number,
+      type: AddressType.DELIVERY,
+      customer_type: CustomerType.PERSON,
+      user: savedUser,
+      is_user_address: true,
+    });
+
+    return [billingAddress, deliveryAddress];
   }
 }

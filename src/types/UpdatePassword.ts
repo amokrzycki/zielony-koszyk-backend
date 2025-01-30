@@ -1,5 +1,5 @@
-import { Users } from '../entities/users.entity';
+import { User } from '../entities/user.entity';
 
-export type UpdatePassword = Partial<Users> & {
+export type UpdatePassword = Partial<User> & {
   new_password: string;
 };

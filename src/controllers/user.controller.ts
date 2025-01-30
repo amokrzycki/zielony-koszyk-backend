@@ -8,13 +8,12 @@ import {
   Put,
   UseGuards,
 } from '@nestjs/common';
-import { UsersService } from '../services/users.service';
-import { Users } from '../entities/users.entity';
+import { UserService } from '../services/user.service';
+import { User } from '../entities/user.entity';
 import { RegisterUserDto } from '../dto/register-user.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UpdatePassword } from '../types/UpdatePassword';
-import { UpdateAddressDto } from '../dto/update-address.dto';
-import { Addresses } from '../entities/addresses.entity';
+import { Address } from '../entities/address.entity';
 import { CreateAddressDto } from '../dto/create-address.dto';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { UpdateUserDto } from '../dto/update-user.dto';
@@ -23,39 +22,39 @@ import { CreateUserDto } from '../dto/create-user.dto';
 // TODO: Reset password flow
 
 @Controller('users')
-export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+export class UserController {
+  constructor(private readonly usersService: UserService) {}
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Get()
-  findAll(): Promise<Users[]> {
+  findAll(): Promise<User[]> {
     return this.usersService.findAll();
   }
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Get(':id')
-  findOne(@Param('id') id: string): Promise<Users> {
+  findOne(@Param('id') id: string): Promise<User> {
     return this.usersService.findById(id);
   }
 
   @Post('register')
-  async register(@Body() user: RegisterUserDto): Promise<Users> {
+  async register(@Body() user: RegisterUserDto): Promise<User> {
     return this.usersService.create(user);
   }
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Post('admin-create')
-  async createUser(@Body() user: CreateUserDto): Promise<Users> {
+  async createUser(@Body() user: CreateUserDto): Promise<User> {
     return this.usersService.createUserFromAdmin(user);
   }
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Put('/change-details/:id')
-  update(@Param('id') id: string, @Body() user: UpdateUserDto): Promise<Users> {
+  update(@Param('id') id: string, @Body() user: UpdateUserDto): Promise<User> {
     return this.usersService.update(id, user);
   }
 
@@ -63,7 +62,7 @@ export class UsersController {
   updatePassword(
     @Param('id') id: string,
     @Body() user: UpdatePassword,
-  ): Promise<Users> {
+  ): Promise<User> {
     return this.usersService.updatePassword(id, user);
   }
 
@@ -80,7 +79,7 @@ export class UsersController {
   addAddress(
     @Param('id') id: string,
     @Body() addressDto: CreateAddressDto,
-  ): Promise<Users> {
+  ): Promise<User> {
     return this.usersService.addAddressToUser(id, addressDto);
   }
 
@@ -90,15 +89,15 @@ export class UsersController {
   updateUserDetails(
     @Param('id') userId: string,
     @Param('addressId') addressId: string,
-    @Body() updateDto: UpdateAddressDto,
-  ): Promise<Users> {
+    @Body() updateDto: CreateAddressDto,
+  ): Promise<User> {
     return this.usersService.updateUserDetails(userId, +addressId, updateDto);
   }
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Get(':id/addresses')
-  getUserAddresses(@Param('id') id: string): Promise<Addresses[]> {
+  getUserAddresses(@Param('id') id: string): Promise<Address[]> {
     return this.usersService.getUserAddresses(id);
   }
 }

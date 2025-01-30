@@ -4,10 +4,10 @@ import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import * as process from 'node:process';
-import { OrderItemsModule } from './modules/order-items.module';
-import { OrdersModule } from './modules/orders.module';
-import { ProductsModule } from './modules/products.module';
-import { UsersModule } from './modules/users.module';
+import { OrderItemModule } from './modules/order-item.module';
+import { OrderModule } from './modules/order.module';
+import { ProductModule } from './modules/product.module';
+import { UserModule } from './modules/user.module';
 import { MailModule } from './modules/mail.module';
 import { AuthModule } from './auth/auth.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
@@ -30,10 +30,10 @@ import * as path from 'path';
       rootPath: path.join(__dirname, '..', 'uploads'),
       serveRoot: '/uploads',
     }),
-    UsersModule,
-    ProductsModule,
-    OrdersModule,
-    OrderItemsModule,
+    UserModule,
+    ProductModule,
+    OrderModule,
+    OrderItemModule,
     MailModule,
     AuthModule,
   ],

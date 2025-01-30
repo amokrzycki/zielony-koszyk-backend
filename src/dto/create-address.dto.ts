@@ -1,7 +1,34 @@
-import { IsEnum, IsOptional, IsString } from 'class-validator';
+import {
+  IsEnum,
+  IsOptional,
+  IsString,
+  Length,
+  ValidateIf,
+} from 'class-validator';
 import { AddressType } from '../enums/AddressType';
+import { CustomerType } from '../types/CustomerType';
 
 export class CreateAddressDto {
+  @ValidateIf((o) => o.customer_type === CustomerType.PERSON)
+  @IsString()
+  first_name: string;
+
+  @ValidateIf((o) => o.customer_type === CustomerType.PERSON)
+  @IsString()
+  last_name: string;
+
+  @ValidateIf((o) => o.customer_type === CustomerType.COMPANY)
+  @IsString()
+  company_name: string;
+
+  @ValidateIf((o) => o.customer_type === CustomerType.COMPANY)
+  @IsString()
+  @Length(10, 11)
+  nip: string;
+
+  @IsString()
+  phone: string;
+
   @IsString()
   street: string;
 
@@ -20,4 +47,10 @@ export class CreateAddressDto {
 
   @IsEnum(AddressType)
   type: AddressType;
+
+  @IsOptional()
+  default: boolean;
+
+  @IsEnum(CustomerType)
+  customer_type: CustomerType;
 }

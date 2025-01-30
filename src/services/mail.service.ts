@@ -1,14 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Mailgun from 'mailgun.js';
-import { Orders } from '../entities/orders.entity';
+import { Order } from '../entities/order.entity';
 import { IMailgunClient } from 'mailgun.js/Interfaces';
 import Handlebars from 'handlebars';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { formatDate } from '../utils/formatDate';
 import FormData from 'form-data';
-import { Users } from '../entities/users.entity';
+import { User } from '../entities/user.entity';
+import { OrderType } from '../types/OrderType';
 
 // TODO: Password change email confirmation
 // TODO: Email change email confirmation
@@ -27,7 +28,10 @@ export class MailService {
     });
   }
 
-  async sendOrderConfirmation(order: Orders): Promise<void> {
+  async sendOrderConfirmation(
+    order: Order,
+    pdfBuffer: Buffer<ArrayBufferLike>,
+  ): Promise<void> {
     const domain = this.configService.get<string>('MAILGUN_DOMAIN');
     const fromEmail = this.configService.get<string>('MAILGUN_FROM_EMAIL');
 
@@ -38,26 +42,40 @@ export class MailService {
     );
     const template = Handlebars.compile(templateSource);
 
+    const customer_name =
+      order.order_type === OrderType.COMPANY
+        ? order.billingAddress.company_name
+        : order.billingAddress.first_name +
+          ' ' +
+          order.billingAddress.last_name;
+
     // Generate the email content
     const html = template({
-      customer_name: order.customer_name,
+      customer_name,
       order_id: order.order_id,
       order_date: formatDate(order.order_date),
       total_amount: order.total_amount,
       orderItems: order.orderItems,
     });
 
+    const attachment = {
+      data: pdfBuffer,
+      filename: `Faktura_${order.order_id}.pdf`,
+      contentType: 'application/pdf',
+    };
+
     const data = {
       from: `Zielony Koszyk <${fromEmail}>`,
       to: order.customer_email,
       subject: 'Potwierdzenie zamówienia',
       html, // Use the generated HTML
+      attachment: [attachment],
     };
 
     await this.mg.messages.create(domain, data);
   }
 
-  async sendEmailWithPassword(user: Users, password: string): Promise<void> {
+  async sendEmailWithPassword(user: User, password: string): Promise<void> {
     const domain = this.configService.get<string>('MAILGUN_DOMAIN');
     const fromEmail = this.configService.get<string>('MAILGUN_FROM_EMAIL');
 

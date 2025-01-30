@@ -10,10 +10,10 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import { Roles } from '../enums/Roles';
 import { Exclude } from 'class-transformer';
-import { Addresses } from './addresses.entity';
+import { Address } from './address.entity';
 
-@Entity()
-export class Users {
+@Entity('users')
+export class User {
   @PrimaryColumn('char', { length: 36 })
   user_id: string;
 
@@ -33,11 +33,11 @@ export class Users {
   @Column()
   last_name: string;
 
-  @OneToMany(() => Addresses, (address) => address.user, {
+  @OneToMany(() => Address, (address) => address.user, {
     cascade: true,
     eager: true,
   })
-  addresses: Relation<Addresses[]>;
+  addresses: Relation<Address[]>;
 
   @Column()
   phone: string;
