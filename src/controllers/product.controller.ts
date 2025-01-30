@@ -74,7 +74,7 @@ export class ProductController {
     @Body('product') productString: string,
     @UploadedFile() file?: Express.Multer.File,
   ): Promise<Product> {
-    const product: CreateProductDto = JSON.parse(productString);
+    const product = JSON.parse(productString) as CreateProductDto;
     return this.productsService.create(product, file);
   }
 

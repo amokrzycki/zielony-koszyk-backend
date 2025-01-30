@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { Order } from '../entities/order.entity';
 import { CustomerType } from '../types/CustomerType';
+import { OrderType } from '../types/OrderType';
 
 @Injectable()
 export class InvoiceService {
@@ -71,7 +72,7 @@ export class InvoiceService {
         `${same_address ? 'Dane do faktury i dostawy' : 'Dane do faktury'}:`,
       );
 
-    if (order.order_type === 'COMPANY') {
+    if (order.order_type === OrderType.COMPANY) {
       doc.text(`Firma: ${order.billingAddress.company_name}`);
       doc.text(`NIP: ${order.billingAddress.nip}`);
     } else {
@@ -191,7 +192,7 @@ export class InvoiceService {
     });
   }
 
-  async saveInvoiceToDisk(order: Order, pdfBuffer: Buffer): Promise<string> {
+  saveInvoiceToDisk(order: Order, pdfBuffer: Buffer): string {
     const invoiceDir = path.join(__dirname, '../../invoices');
 
     if (!fs.existsSync(invoiceDir)) {

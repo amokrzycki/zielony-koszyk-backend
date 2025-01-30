@@ -7,21 +7,22 @@ import {
 } from 'class-validator';
 import { AddressType } from '../enums/AddressType';
 import { CustomerType } from '../types/CustomerType';
+import { Address } from '../entities/address.entity';
 
 export class CreateAddressDto {
-  @ValidateIf((o) => o.customer_type === CustomerType.PERSON)
+  @ValidateIf((o: Address) => o.customer_type === CustomerType.PERSON)
   @IsString()
   first_name: string;
 
-  @ValidateIf((o) => o.customer_type === CustomerType.PERSON)
+  @ValidateIf((o: Address) => o.customer_type === CustomerType.PERSON)
   @IsString()
   last_name: string;
 
-  @ValidateIf((o) => o.customer_type === CustomerType.COMPANY)
+  @ValidateIf((o: Address) => o.customer_type === CustomerType.COMPANY)
   @IsString()
   company_name: string;
 
-  @ValidateIf((o) => o.customer_type === CustomerType.COMPANY)
+  @ValidateIf((o: Address) => o.customer_type === CustomerType.COMPANY)
   @IsString()
   @Length(10, 11)
   nip: string;

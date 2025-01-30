@@ -10,6 +10,7 @@ import {
 import { Type } from 'class-transformer';
 import { OrderType } from '../types/OrderType';
 import { CreateAddressDto } from './create-address.dto';
+import { Order } from '../entities/order.entity';
 
 export class CreateOrderDto {
   @IsOptional()
@@ -18,7 +19,7 @@ export class CreateOrderDto {
   @IsEnum(OrderType, { message: 'Invalid order type' })
   order_type: OrderType;
 
-  @ValidateIf((o) => o.order_type === OrderType.COMPANY)
+  @ValidateIf((o: Order) => o.order_type === OrderType.COMPANY)
   @IsString()
   nip?: string;
 
