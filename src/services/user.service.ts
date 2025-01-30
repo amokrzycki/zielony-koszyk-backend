@@ -249,7 +249,7 @@ export class UserService {
       },
     });
 
-    if (addressWithSameType) {
+    if (addressWithSameType && updateDto.default) {
       addressWithSameType.default = false;
       await this.addressesRepository.save(addressWithSameType);
     }

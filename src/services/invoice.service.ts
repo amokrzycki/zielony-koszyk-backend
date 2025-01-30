@@ -3,6 +3,7 @@ import PDFDocument from 'pdfkit';
 import * as path from 'path';
 import * as fs from 'fs';
 import { Order } from '../entities/order.entity';
+import { CustomerType } from '../types/CustomerType';
 
 @Injectable()
 export class InvoiceService {
@@ -52,9 +53,9 @@ export class InvoiceService {
       .font('OpenSansRegular')
       .fontSize(12)
       .text(`Sprzedawca: ZIELONY KOSZYK`)
-      .text(`ul. Okrzei 26/1`)
-      .text(`05-500 Piaseczno`)
-      .text(`NIP: 5441112223`);
+      .text(`ul. Mokrzyckiego 4/20`)
+      .text(`36-105 Cmolas`)
+      .text(`NIP: 6902137420`);
 
     doc.moveDown();
 
@@ -81,7 +82,7 @@ export class InvoiceService {
 
     doc
       .text(
-        `Adres: ${order.billingAddress.street} ${order.billingAddress.building_number}${order.billingAddress.flat_number ? `/${order.billingAddress.flat_number}` : ''} ${order.billingAddress.zip}, ${order.billingAddress.city}`,
+        `Adres: ${order.billingAddress.street} ${order.billingAddress.building_number}${order.billingAddress.flat_number ? `/${order.billingAddress.flat_number}` : ''}, ${order.billingAddress.zip} ${order.billingAddress.city}`,
       )
       .text(`Email: ${order.customer_email}`)
       .text(`Telefon: ${order.billingAddress.phone}`);
@@ -97,7 +98,7 @@ export class InvoiceService {
         .fontSize(12)
         .text('Dane do dostawy:');
 
-      if (order.order_type === 'COMPANY') {
+      if (order.shippingAddress.customer_type === CustomerType.COMPANY) {
         doc.text(`Firma: ${order.shippingAddress.company_name}`);
         doc.text(`NIP: ${order.shippingAddress.nip}`);
       } else {
@@ -108,7 +109,7 @@ export class InvoiceService {
       doc
         .text(`Telefon: ${order.shippingAddress.phone}`)
         .text(
-          `Adres: ${order.shippingAddress.street} ${order.shippingAddress.building_number} ${order.shippingAddress.flat_number ? `/${order.shippingAddress.flat_number}` : ''} ${order.shippingAddress.zip}, ${order.shippingAddress.city}`,
+          `Adres: ${order.shippingAddress.street} ${order.shippingAddress.building_number} ${order.shippingAddress.flat_number ? `/${order.shippingAddress.flat_number}` : ''}, ${order.shippingAddress.zip} ${order.shippingAddress.city}`,
         );
 
       doc.moveDown();
