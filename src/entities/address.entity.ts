@@ -68,7 +68,7 @@ export class Address {
 
   @Exclude()
   @Column('char', { length: 36, nullable: true })
-  user_id: string;
+  user_id?: string;
 
   @ManyToOne(() => User, (user) => user.addresses, {
     onDelete: 'CASCADE',

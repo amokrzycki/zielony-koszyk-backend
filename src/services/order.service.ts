@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { Order } from '../entities/order.entity';
@@ -10,16 +10,13 @@ import { MailService } from './mail.service';
 import { OrderItem } from '../entities/order-item.entity';
 import { InvoiceService } from './invoice.service';
 import { Address } from '../entities/address.entity';
+import { UpdateOrderDto } from '../dto/update-order.dto';
 
 @Injectable()
 export class OrderService {
   constructor(
     @InjectRepository(Order)
     private ordersRepository: Repository<Order>,
-    @InjectRepository(User)
-    private usersRepository: Repository<User>,
-    @InjectRepository(Product)
-    private productsRepository: Repository<Product>,
     private dataSource: DataSource,
     private readonly mailService: MailService,
     private invoiceService: InvoiceService,
@@ -105,9 +102,19 @@ export class OrderService {
     return savedOrder;
   }
 
-  async update(id: number, order: Partial<Order>): Promise<Order> {
-    await this.ordersRepository.update(id, order);
-    return this.ordersRepository.findOneBy({ order_id: id });
+  async update(id: number, orderUpdate: UpdateOrderDto): Promise<Order> {
+    const existingOrder = await this.ordersRepository.findOne({
+      where: { order_id: id },
+      relations: ['billingAddress', 'shippingAddress'],
+    });
+
+    if (!existingOrder) {
+      throw new NotFoundException(`Order with ID ${id} not found`);
+    }
+
+    const updatedOrder = { ...existingOrder, ...orderUpdate };
+
+    return this.ordersRepository.save(updatedOrder);
   }
 
   async remove(id: number): Promise<void> {
@@ -122,7 +129,6 @@ export class OrderService {
     const orderItems: OrderItem[] = [];
 
     for (const detail of orderDetails) {
-      console.log(detail.product_id);
       const orderDetail = new OrderItem();
       const product = await manager.getRepository(Product).findOne({
         where: { product_id: detail.product_id },

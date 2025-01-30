@@ -21,6 +21,7 @@ import { ApiBearerAuth } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { User } from '../entities/user.entity';
 import { Roles } from '../enums/Roles';
+import { UpdateOrderDto } from '../dto/update-order.dto';
 
 @ApiBearerAuth()
 @Controller('orders')
@@ -83,7 +84,7 @@ export class OrderController {
   @Put(':id')
   update(
     @Param('id') id: string,
-    @Body() order: Partial<Order>,
+    @Body() order: UpdateOrderDto,
   ): Promise<Order> {
     return this.ordersService.update(+id, order);
   }
