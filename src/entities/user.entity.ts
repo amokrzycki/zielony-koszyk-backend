@@ -17,8 +17,8 @@ export class User {
   @PrimaryColumn('char', { length: 36 })
   user_id: string;
 
-  @Column({ default: Roles.USER })
-  role: string;
+  @Column({ type: 'enum', enum: Roles, default: Roles.USER })
+  role: Roles;
 
   @Exclude()
   @Column()

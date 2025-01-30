@@ -84,7 +84,7 @@ export class OrderService {
       createOrderDto.same_address,
     );
 
-    const invoicePath = await this.invoiceService.saveInvoiceToDisk(
+    const invoicePath = this.invoiceService.saveInvoiceToDisk(
       savedOrder,
       pdfBuffer,
     );

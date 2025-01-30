@@ -42,10 +42,15 @@ export class OrderItemSubscriber
   }
 
   async afterUpdate(event: UpdateEvent<OrderItem>) {
+    if (!event.entity) {
+      return;
+    }
+
     const itemRepo = event.manager.getRepository(OrderItem);
 
+    const orderItem = event.entity as OrderItem;
     const updatedItem = await itemRepo.findOne({
-      where: { order_item_id: event.entity?.order_item_id },
+      where: { order_item_id: orderItem.order_item_id },
       relations: ['order'],
     });
 
