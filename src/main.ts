@@ -13,7 +13,7 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('Zielony Koszyk API')
-    .setDescription('API aplikacji Zielony Koszyk')
+    .setDescription('Zielony Koszyk API')
     .setVersion('1.0')
     .addBearerAuth()
     .build();
@@ -23,7 +23,7 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, documentFactory);
 
   const corsOptions: CorsOptions = {
-    origin: 'http://localhost:5173',
+    origin: ['http://localhost:5173', 'https://zielony.amokrzycki.ovh'],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     preflightContinue: false,
     optionsSuccessStatus: 204,

@@ -13,7 +13,14 @@
 <h3>Szczegóły zamówienia:</h3>
 <ul>
   {{#each orderItems}}
-    <li>{{this.product.name}} x{{this.quantity}} - {{this.price}} zł</li>
+    <li>
+      {{this.product_name}}
+      {{#if this.isDelivery}}
+      {{else}}
+        x{{this.quantity}}
+      {{/if}}
+      - {{this.price}} zł
+    </li>
   {{/each}}
 </ul>
 <p>Powiadomimy Cię, gdy twoje zamówienie zostanie przygotowane do wysyłki!</p>

@@ -136,6 +136,9 @@ export class OrderService {
         throw new Error(`Product with ID ${detail.product_id} not found`);
       }
 
+      product.stock_quantity -= detail.quantity;
+      await manager.getRepository(Product).save(product);
+
       orderDetail.product = product;
       orderDetail.product_name = product.name;
       orderDetail.quantity = detail.quantity;
