@@ -22,6 +22,7 @@ import * as path from 'path';
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: false,
       autoLoadEntities: true,
+      schema: 'zielonykoszyk',
     }),
     ServeStaticModule.forRoot({
       rootPath: path.join(__dirname, '..', 'uploads'),
