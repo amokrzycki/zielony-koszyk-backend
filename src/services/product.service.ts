@@ -58,7 +58,7 @@ export class ProductService {
       .where('1 = 1'); // dummy so we can chain .andWhere
 
     if (search) {
-      query.andWhere('p.name LIKE :search', { search: `%${search}%` });
+      query.andWhere('p.name ILIKE :search', { search: `%${search}%` });
     }
 
     if (category) {
