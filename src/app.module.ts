@@ -17,14 +17,12 @@ import * as path from 'path';
   imports: [
     ConfigModule.forRoot(),
     TypeOrmModule.forRoot({
-      type: 'mysql',
-      host: 'db',
-      port: 3306,
-      username: 'root',
-      password: process.env.MYSQL_ROOT_PASSWORD,
-      database: 'sklep',
+      type: 'postgres',
+      url: process.env.DATABASE_URL,
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: true,
+      synchronize: false,
+      autoLoadEntities: true,
+      schema: 'zielonykoszyk',
     }),
     ServeStaticModule.forRoot({
       rootPath: path.join(__dirname, '..', 'uploads'),

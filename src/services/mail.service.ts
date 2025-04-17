@@ -21,10 +21,12 @@ export class MailService {
 
   constructor(private readonly configService: ConfigService) {
     const apiKey = this.configService.get<string>('MAILGUN_API_KEY');
+    const host = this.configService.get<string>('MAILGUN_HOST');
     const mailgun = new Mailgun(FormData);
     this.mg = mailgun.client({
       username: 'api',
       key: apiKey,
+      url: host,
     });
   }
 
@@ -49,13 +51,20 @@ export class MailService {
           ' ' +
           order.billingAddress.last_name;
 
+    const preparedItems = order.orderItems.map((item) => ({
+      product_name: item.product_name,
+      quantity: item.quantity,
+      price: item.price,
+      isDelivery: item.product_name === 'Dostawa',
+    }));
+
     // Generate the email content
     const html = template({
       customer_name,
       order_id: order.order_id,
       order_date: formatDate(order.order_date),
       total_amount: order.total_amount,
-      orderItems: order.orderItems,
+      orderItems: preparedItems,
     });
 
     const attachment = {
@@ -72,7 +81,11 @@ export class MailService {
       attachment: [attachment],
     };
 
-    await this.mg.messages.create(domain, data);
+    try {
+      await this.mg.messages.create(domain, data);
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   async sendEmailWithPassword(user: User, password: string): Promise<void> {
@@ -101,6 +114,11 @@ export class MailService {
       html,
     };
 
-    await this.mg.messages.create(domain, data);
+    // Send the email using the Mailgun API and console.log the response or catch the error
+    try {
+      await this.mg.messages.create(domain, data);
+    } catch (error) {
+      console.error(error);
+    }
   }
 }

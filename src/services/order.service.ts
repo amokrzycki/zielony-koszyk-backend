@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { Order } from '../entities/order.entity';
@@ -135,6 +139,15 @@ export class OrderService {
       if (!product) {
         throw new Error(`Product with ID ${detail.product_id} not found`);
       }
+
+      if (product.stock_quantity < detail.quantity) {
+        throw new ConflictException(
+          `Insufficient stock for product ID ${detail.product_id}. Available: ${product.stock_quantity}, Requested: ${detail.quantity}`,
+        );
+      }
+
+      product.stock_quantity -= detail.quantity;
+      await manager.getRepository(Product).save(product);
 
       orderDetail.product = product;
       orderDetail.product_name = product.name;
