@@ -26,7 +26,7 @@ export class OrderItemService {
   async update(id: number, partial: Partial<OrderItem>): Promise<OrderItem> {
     const existing = await this.orderItemsRepository.findOne({
       where: { order_item_id: id },
-      relations: ['order'],
+      relations: { order: true },
     });
 
     if (!existing) {
@@ -41,7 +41,7 @@ export class OrderItemService {
   async remove(id: number): Promise<void> {
     const existing = await this.orderItemsRepository.findOne({
       where: { order_item_id: id },
-      relations: ['order'],
+      relations: { order: true },
     });
 
     if (!existing) {

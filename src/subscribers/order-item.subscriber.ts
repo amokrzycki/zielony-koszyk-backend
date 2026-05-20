@@ -11,9 +11,7 @@ import { OrderItem } from '../entities/order-item.entity';
 import { Order } from '../entities/order.entity';
 
 @EventSubscriber()
-export class OrderItemSubscriber
-  implements EntitySubscriberInterface<OrderItem>
-{
+export class OrderItemSubscriber implements EntitySubscriberInterface<OrderItem> {
   constructor(private dataSource: DataSource) {
     this.dataSource.subscribers.push(this);
   }
@@ -27,7 +25,9 @@ export class OrderItemSubscriber
 
     const newItem = await itemRepo.findOne({
       where: { order_item_id: event.entity?.order_item_id },
-      relations: ['order'],
+      relations: {
+        order: true,
+      },
     });
 
     if (!newItem) {
@@ -51,7 +51,9 @@ export class OrderItemSubscriber
     const orderItem = event.entity as OrderItem;
     const updatedItem = await itemRepo.findOne({
       where: { order_item_id: orderItem.order_item_id },
-      relations: ['order'],
+      relations: {
+        order: true,
+      },
     });
 
     if (!updatedItem) {
@@ -70,7 +72,9 @@ export class OrderItemSubscriber
 
     const removedItem = await itemRepo.findOne({
       where: { order_item_id: event.entity?.order_item_id },
-      relations: ['order'],
+      relations: {
+        order: true,
+      },
     });
 
     if (!removedItem) {
@@ -89,7 +93,9 @@ export class OrderItemSubscriber
 
     const order = await orderRepo.findOne({
       where: { order_id: orderId },
-      relations: ['orderItems'],
+      relations: {
+        orderItems: true,
+      },
     });
     if (!order) return;
 
