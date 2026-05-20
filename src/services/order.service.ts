@@ -28,14 +28,20 @@ export class OrderService {
 
   findAll(): Promise<Order[]> {
     return this.ordersRepository.find({
-      relations: ['billingAddress', 'shippingAddress'],
+      relations: {
+        billingAddress: true,
+        shippingAddress: true,
+      },
     });
   }
 
   async findOrderByOrderId(id: number): Promise<Order> {
     return this.ordersRepository.findOne({
       where: { order_id: id },
-      relations: ['billingAddress', 'shippingAddress'],
+      relations: {
+        billingAddress: true,
+        shippingAddress: true,
+      },
     });
   }
 
@@ -107,7 +113,10 @@ export class OrderService {
   async update(id: number, orderUpdate: UpdateOrderDto): Promise<Order> {
     const existingOrder = await this.ordersRepository.findOne({
       where: { order_id: id },
-      relations: ['billingAddress', 'shippingAddress'],
+      relations: {
+        billingAddress: true,
+        shippingAddress: true,
+      },
     });
 
     if (!existingOrder) {

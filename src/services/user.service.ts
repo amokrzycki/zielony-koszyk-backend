@@ -70,7 +70,9 @@ export class UserService {
 
     return this.usersRepository.findOne({
       where: { user_id: savedUser.user_id },
-      relations: ['addresses'],
+      relations: {
+        addresses: true,
+      },
     });
   }
 
@@ -114,7 +116,9 @@ export class UserService {
 
     return this.usersRepository.findOne({
       where: { user_id: savedUser.user_id },
-      relations: ['addresses'],
+      relations: {
+        addresses: true,
+      },
     });
   }
 
@@ -135,7 +139,9 @@ export class UserService {
 
     return this.usersRepository.findOne({
       where: { user_id: id },
-      relations: ['addresses'],
+      relations: {
+        addresses: true,
+      },
     });
   }
 
@@ -198,7 +204,9 @@ export class UserService {
 
     return this.usersRepository.findOne({
       where: { user_id: userId },
-      relations: ['addresses'],
+      relations: {
+        addresses: true,
+      },
     });
   }
 
@@ -221,7 +229,9 @@ export class UserService {
 
     const address = await this.addressesRepository.findOne({
       where: { address_id: addressId },
-      relations: ['user'],
+      relations: {
+        user: true,
+      },
     });
 
     if (!address || address.user.user_id !== userId) {
@@ -259,14 +269,18 @@ export class UserService {
 
     return this.usersRepository.findOne({
       where: { user_id: userId },
-      relations: ['addresses'],
+      relations: {
+        addresses: true,
+      },
     });
   }
 
   async getUserAddresses(userId: string): Promise<Address[]> {
     const user = await this.usersRepository.findOne({
       where: { user_id: userId },
-      relations: ['addresses'],
+      relations: {
+        addresses: true,
+      },
     });
 
     if (!user) {

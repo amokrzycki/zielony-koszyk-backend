@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Mailgun from 'mailgun.js';
 import { Order } from '../entities/order.entity';
-import { IMailgunClient } from 'mailgun.js/Interfaces';
 import Handlebars from 'handlebars';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -17,7 +16,7 @@ import { OrderType } from '../types/OrderType';
 
 @Injectable()
 export class MailService {
-  private mg: IMailgunClient;
+  private mg: ReturnType<InstanceType<typeof Mailgun>['client']>;
 
   constructor(private readonly configService: ConfigService) {
     const apiKey = this.configService.get<string>('MAILGUN_API_KEY');
