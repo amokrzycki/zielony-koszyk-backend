@@ -24,6 +24,7 @@ async function bootstrap() {
 
   const corsOptions: CorsOptions = {
     origin: ['http://localhost:5173', 'https://zielony.amokrzycki.ovh'],
+    credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     preflightContinue: false,
     optionsSuccessStatus: 204,
