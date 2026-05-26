@@ -25,7 +25,7 @@ import * as path from 'path';
       schema: 'zielonykoszyk',
     }),
     ServeStaticModule.forRoot({
-      rootPath: path.join(__dirname, '..', 'uploads'),
+      rootPath: '/app/uploads',
       serveRoot: '/uploads',
     }),
     UserModule,

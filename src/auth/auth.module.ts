@@ -22,7 +22,7 @@ import { OrderItemModule } from '../modules/order-item.module';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET'),
-        signOptions: { expiresIn: '24h' },
+        signOptions: { expiresIn: '15m' },
       }),
     }),
   ],

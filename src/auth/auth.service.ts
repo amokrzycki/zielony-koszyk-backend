@@ -15,7 +15,6 @@ export class AuthService {
     const user = await this.usersService.findByEmail(email);
 
     if (user && (await bcrypt.compare(password, user.password))) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...result } = user;
       return result;
     }
@@ -24,9 +23,19 @@ export class AuthService {
 
   login(user: Partial<User>) {
     const payload = { email: user.email, sub: user.user_id, role: user.role };
+    const access_token = this.jwtService.sign(payload, { expiresIn: '15m' });
+    const refresh_token = this.jwtService.sign(payload, { expiresIn: '7d' });
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token,
+      refresh_token,
       user: user,
     };
+  }
+
+  refresh(user: Partial<User>) {
+    const payload = { email: user.email, sub: user.user_id, role: user.role };
+    const access_token = this.jwtService.sign(payload, { expiresIn: '15m' });
+    const refresh_token = this.jwtService.sign(payload, { expiresIn: '7d' });
+    return { access_token, refresh_token };
   }
 }
