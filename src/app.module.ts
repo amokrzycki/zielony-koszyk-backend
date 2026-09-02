@@ -11,7 +11,6 @@ import { UserModule } from './modules/user.module';
 import { MailModule } from './modules/mail.module';
 import { AuthModule } from './auth/auth.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
-import * as path from 'path';
 
 @Module({
   imports: [

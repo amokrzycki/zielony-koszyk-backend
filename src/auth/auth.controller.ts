@@ -9,8 +9,12 @@ import {
 import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from '../dto/login.dto';
-import { JwtAuthGuard } from './jwt-auth.guard';
+import { RefreshTokenAuthGuard } from './jwt-auth.guard';
 import { GetUser } from '../decorators/get-user.decorator';
+import {
+  accessCookieOptions,
+  refreshCookieOptions,
+} from './refresh-cookie-options';
 
 @Controller()
 export class AuthController {
@@ -29,14 +33,14 @@ export class AuthController {
       access_token,
       refresh_token,
       user: userData,
-    } = this.authService.login(user);
+    } = this.authService.login(user, loginDto.rememberMe);
 
-    res.cookie('refreshToken', refresh_token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
+    res.cookie(
+      'refreshToken',
+      refresh_token,
+      refreshCookieOptions(loginDto.rememberMe),
+    );
+    res.cookie('accessToken', access_token, accessCookieOptions());
 
     res.json({
       access_token,
@@ -45,28 +49,28 @@ export class AuthController {
   }
 
   @Post('auth/refresh')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(RefreshTokenAuthGuard)
   async refresh(
     @GetUser() user: Record<string, unknown>,
     @Res() res: Response,
   ) {
-    const { access_token, refresh_token } = this.authService.refresh(
-      user as any,
-    );
+    const {
+      access_token,
+      refresh_token,
+      rememberMe,
+      user: userData,
+    } = await this.authService.refresh(user);
 
-    res.cookie('refreshToken', refresh_token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie('refreshToken', refresh_token, refreshCookieOptions(rememberMe));
+    res.cookie('accessToken', access_token, accessCookieOptions());
 
-    res.json({ access_token });
+    res.json({ access_token, user: userData });
   }
 
   @Post('auth/logout')
-  async logout(@Res() res: Response) {
+  logout(@Res() res: Response) {
     res.clearCookie('refreshToken');
+    res.clearCookie('accessToken');
     res.json({ message: 'Logged out successfully' });
   }
 }
