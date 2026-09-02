@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { UserService } from '../services/user.service';
@@ -15,18 +15,48 @@ export class AuthService {
     const user = await this.usersService.findByEmail(email);
 
     if (user && (await bcrypt.compare(password, user.password))) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { password, ...result } = user;
+      const result = { ...user };
+      delete result.password;
       return result;
     }
     return null;
   }
 
-  login(user: Partial<User>) {
+  login(user: Partial<User>, rememberMe = false) {
     const payload = { email: user.email, sub: user.user_id, role: user.role };
+    const access_token = this.jwtService.sign(payload, { expiresIn: '15m' });
+    const refresh_token = this.jwtService.sign(
+      { ...payload, type: 'refresh', rememberMe },
+      { expiresIn: '7d' },
+    );
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token,
+      refresh_token,
       user: user,
+    };
+  }
+
+  async refresh(user: Partial<User> & { rememberMe?: boolean }) {
+    const account = await this.usersService.findById(user.user_id);
+    if (!account) throw new UnauthorizedException();
+
+    const payload = {
+      email: account.email,
+      sub: account.user_id,
+      role: account.role,
+    };
+    const access_token = this.jwtService.sign(payload, { expiresIn: '15m' });
+    const refresh_token = this.jwtService.sign(
+      { ...payload, type: 'refresh', rememberMe: user.rememberMe },
+      { expiresIn: '7d' },
+    );
+    const userData = { ...account };
+    delete userData.password;
+    return {
+      access_token,
+      refresh_token,
+      rememberMe: user.rememberMe,
+      user: userData,
     };
   }
 }

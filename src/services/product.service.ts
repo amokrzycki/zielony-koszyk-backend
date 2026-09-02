@@ -107,7 +107,7 @@ export class ProductService {
       throw new NotFoundException('Product not found');
     }
 
-    const uploadDir = path.join(__dirname, '../../uploads');
+    const uploadDir = '/app/uploads';
 
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
@@ -145,7 +145,7 @@ export class ProductService {
     const savedProduct = await this.productsRepository.save(newProduct);
 
     if (file) {
-      const uploadDir = path.join(__dirname, '../../uploads');
+      const uploadDir = '/app/uploads';
 
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
