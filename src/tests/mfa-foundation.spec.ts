@@ -20,6 +20,7 @@ import {
   RefreshTokenStrategy,
 } from '../auth/jwt.strategy';
 import { MfaService } from '../auth/mfa.service';
+import { MfaController } from '../auth/mfa.controller';
 import {
   MfaChallenge,
   MfaChallengePurpose,
@@ -27,6 +28,7 @@ import {
 import type { User } from '../entities/user.entity';
 import { MfaMethod } from '../enums/MfaMethod';
 import type { UserService } from '../services/user.service';
+import type { MailService } from '../services/mail.service';
 import type { MfaTokenPayload } from '../types/JWTPayload';
 
 @Controller('guard-probe')
@@ -133,7 +135,9 @@ describe('MFA login separation', () => {
   });
 });
 
-const mfaServiceFixture = () => {
+const mfaServiceFixture = (
+  otpHmacKey = Buffer.alloc(32, 1).toString('base64'),
+) => {
   const challenges = new Map<string, MfaChallenge>();
   const repository = {
     create: jest.fn((challenge: MfaChallenge) => challenge),
@@ -174,14 +178,22 @@ const mfaServiceFixture = () => {
     },
   });
   const jwtService = new JwtService({ secret: 'test-secret' });
+  const configService = new ConfigService({
+    MFA_OTP_HMAC_KEY: otpHmacKey,
+  });
+  const sendMfaOtp = jest.fn().mockResolvedValue(undefined);
+  const mailService = { sendMfaOtp } as unknown as MailService;
 
   return {
     challenges,
     jwtService,
+    sendMfaOtp,
     repository,
     service: new MfaService(
       repository as unknown as Repository<MfaChallenge>,
       jwtService,
+      configService,
+      mailService,
     ),
   };
 };
@@ -271,6 +283,117 @@ describe('MFA challenge lifecycle', () => {
   });
 });
 
+describe('Email OTP', () => {
+  it('rejects a weak HMAC key before storing or sending a code', async () => {
+    const fixture = mfaServiceFixture('d2Vhaw==');
+
+    await expect(
+      fixture.service.createLoginChallenge(user(MfaMethod.EMAIL_OTP)),
+    ).rejects.toThrow('MFA_OTP_HMAC_KEY must contain at least 32 base64 bytes');
+    expect(fixture.challenges.size).toBe(0);
+    expect(fixture.sendMfaOtp).not.toHaveBeenCalled();
+  });
+
+  it('generates only a digest, rejects bad codes and consumes a valid code once', async () => {
+    const { challenges, jwtService, sendMfaOtp, service } = mfaServiceFixture();
+    const account = user(MfaMethod.EMAIL_OTP);
+    const pending = await service.createLoginChallenge(account, true);
+    const payload = jwtService.verify<MfaTokenPayload>(pending.mfa_token, {
+      algorithms: ['HS256'],
+    });
+    const code = sendMfaOtp.mock.calls[0][1] as string;
+    const challenge = challenges.get(payload.jti);
+
+    expect(code).toMatch(/^\d{6}$/);
+    expect(challenge?.otp_digest).toMatch(/^[a-f\d]{64}$/);
+    expect(JSON.stringify(challenge)).not.toContain(code);
+
+    const wrongCode = code === '000000' ? '000001' : '000000';
+    await expect(
+      service.verifyEmailOtp(account.user_id, payload.jti, wrongCode),
+    ).rejects.toThrow('Invalid or expired MFA challenge');
+    expect(challenge?.attempt_count).toBe(1);
+
+    await service.verifyEmailOtp(account.user_id, payload.jti, code);
+    await expect(
+      service.verifyEmailOtp(account.user_id, payload.jti, code),
+    ).rejects.toThrow('Invalid or expired MFA challenge');
+    expect(challenges.size).toBe(0);
+  });
+
+  it('waits for SMTP and removes only the failed challenge', async () => {
+    const fixture = mfaServiceFixture();
+    const account = user(MfaMethod.EMAIL_OTP);
+    let acceptMail: () => void;
+    fixture.sendMfaOtp.mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        acceptMail = resolve;
+      }),
+    );
+    let settled = false;
+    const pending = fixture.service
+      .createLoginChallenge(account)
+      .finally(() => {
+        settled = true;
+      });
+
+    await new Promise(setImmediate);
+    expect(fixture.sendMfaOtp).toHaveBeenCalledTimes(1);
+    expect(fixture.challenges.size).toBe(1);
+    expect(settled).toBe(false);
+    acceptMail!();
+    await pending;
+
+    fixture.sendMfaOtp.mockRejectedValueOnce(new Error('SMTP credentials'));
+    await expect(
+      fixture.service.createLoginChallenge(account),
+    ).rejects.toMatchObject({
+      status: 503,
+      response: { message: 'Unable to send MFA code' },
+    });
+    expect(fixture.challenges.size).toBe(0);
+  });
+
+  it('rejects replaced, expired and attempt-limited codes', async () => {
+    const { challenges, jwtService, sendMfaOtp, service } = mfaServiceFixture();
+    const account = user(MfaMethod.EMAIL_OTP);
+    const first = await service.createLoginChallenge(account);
+    const firstPayload = jwtService.verify<MfaTokenPayload>(first.mfa_token);
+    const firstCode = sendMfaOtp.mock.calls[0][1] as string;
+    const second = await service.createLoginChallenge(account);
+    const secondPayload = jwtService.verify<MfaTokenPayload>(second.mfa_token);
+    const secondCode = sendMfaOtp.mock.calls[1][1] as string;
+
+    await expect(
+      service.verifyEmailOtp(account.user_id, firstPayload.jti, firstCode),
+    ).rejects.toThrow('Invalid or expired MFA challenge');
+
+    const current = challenges.get(secondPayload.jti);
+    if (!current) throw new Error('Expected current challenge');
+    current.expires_at = new Date(Date.now() - 1);
+    await expect(
+      service.verifyEmailOtp(account.user_id, secondPayload.jti, secondCode),
+    ).rejects.toThrow('Invalid or expired MFA challenge');
+    expect(challenges.size).toBe(0);
+
+    const limited = await service.createLoginChallenge(account);
+    const limitedPayload = jwtService.verify<MfaTokenPayload>(
+      limited.mfa_token,
+    );
+    const validCode = sendMfaOtp.mock.calls[2][1] as string;
+    const wrongCode = validCode === '000000' ? '000001' : '000000';
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      await expect(
+        service.verifyEmailOtp(account.user_id, limitedPayload.jti, wrongCode),
+      ).rejects.toThrow('Invalid or expired MFA challenge');
+    }
+    await expect(
+      service.verifyEmailOtp(account.user_id, limitedPayload.jti, validCode),
+    ).rejects.toThrow('Invalid or expired MFA challenge');
+    expect(challenges.get(limitedPayload.jti)?.attempt_count).toBe(5);
+  });
+});
+
 describe('MFA token isolation', () => {
   it('accepts pending payload only through MFA strategy', async () => {
     const config = new ConfigService({ JWT_SECRET: 'test-secret' });
@@ -306,7 +429,12 @@ describe('MFA token isolation', () => {
   });
 
   it('separates full and pending sessions through HTTP guards', async () => {
-    const { challenges, jwtService, service: mfaService } = mfaServiceFixture();
+    const {
+      challenges,
+      jwtService,
+      sendMfaOtp,
+      service: mfaService,
+    } = mfaServiceFixture();
     const account = user(MfaMethod.NONE);
     account.password = await bcrypt.hash('password', 4);
     const usersService = {
@@ -317,7 +445,7 @@ describe('MFA token isolation', () => {
     const configService = new ConfigService({ JWT_SECRET: 'test-secret' });
     const moduleRef = await Test.createTestingModule({
       imports: [PassportModule],
-      controllers: [AuthController, GuardProbeController],
+      controllers: [AuthController, MfaController, GuardProbeController],
       providers: [
         JwtStrategy,
         RefreshTokenStrategy,
@@ -370,7 +498,7 @@ describe('MFA token isolation', () => {
       });
       expect(refreshed.headers['set-cookie']).toHaveLength(2);
 
-      account.mfa_method = MfaMethod.TOTP;
+      account.mfa_method = MfaMethod.EMAIL_OTP;
       const pending = await request(server)
         .post('/auth/login')
         .set('Cookie', fullCookies)
@@ -387,7 +515,7 @@ describe('MFA token isolation', () => {
 
       expect(pendingBody).toEqual({
         mfa_required: true,
-        method: MfaMethod.TOTP,
+        method: MfaMethod.EMAIL_OTP,
         mfa_token: expect.any(String) as string,
       });
       expect(pendingCookies).toHaveLength(2);
@@ -410,6 +538,25 @@ describe('MFA token isolation', () => {
       await request(server)
         .get('/guard-probe/mfa')
         .set('Cookie', `accessToken=${pendingBody.mfa_token}`)
+        .expect(401);
+
+      const code = sendMfaOtp.mock.calls[0][1] as string;
+      const verified = await request(server)
+        .post('/auth/mfa/email-otp/verify')
+        .set('Authorization', `Bearer ${pendingBody.mfa_token}`)
+        .send({ code })
+        .expect(201);
+      expect(verified.body).toMatchObject({
+        mfa_required: false,
+        user: { user_id: account.user_id },
+      });
+      expect(verified.body).toHaveProperty('access_token');
+      expect(verified.headers['set-cookie']).toHaveLength(2);
+      expect(challenges.size).toBe(0);
+      await request(server)
+        .post('/auth/mfa/email-otp/verify')
+        .set('Authorization', `Bearer ${pendingBody.mfa_token}`)
+        .send({ code })
         .expect(401);
     } finally {
       await app.close();

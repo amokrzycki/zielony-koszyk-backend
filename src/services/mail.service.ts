@@ -9,6 +9,7 @@ import { formatDate } from '../utils/formatDate';
 import * as FormData from 'form-data';
 import { User } from '../entities/user.entity';
 import { OrderType } from '../types/OrderType';
+import { createTransport, Transporter } from 'nodemailer';
 
 // TODO: Password change email confirmation
 // TODO: Email change email confirmation
@@ -17,6 +18,7 @@ import { OrderType } from '../types/OrderType';
 @Injectable()
 export class MailService {
   private mg: ReturnType<InstanceType<typeof Mailgun>['client']>;
+  private smtp: Transporter;
 
   constructor(private readonly configService: ConfigService) {
     const apiKey = this.configService.get<string>('MAILGUN_API_KEY');
@@ -26,6 +28,35 @@ export class MailService {
       username: 'api',
       key: apiKey,
       url: host,
+    });
+    this.smtp = createTransport({
+      host: this.configService.get<string>('SMTP_HOST'),
+      port: Number(this.configService.get<string>('SMTP_PORT') ?? 587),
+      secure: this.configService.get<string>('SMTP_SECURE') === 'true',
+      requireTLS: this.configService.get<string>('SMTP_SECURE') !== 'true',
+      auth: {
+        user: this.configService.get<string>('SMTP_USER'),
+        pass: this.configService.get<string>('SMTP_PASSWORD'),
+      },
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 15_000,
+      tls: { rejectUnauthorized: true },
+    });
+  }
+
+  async sendMfaOtp(email: string, code: string): Promise<void> {
+    const templateSource = fs.readFileSync(
+      path.join(__dirname, '../../constants/mfa-otp.hbs'),
+      'utf8',
+    );
+    const html = Handlebars.compile(templateSource)({ code });
+
+    await this.smtp.sendMail({
+      from: `Zielony Koszyk <${this.configService.get<string>('SMTP_FROM_EMAIL')}>`,
+      to: email,
+      subject: 'Kod logowania do Zielonego Koszyka',
+      html,
     });
   }
 

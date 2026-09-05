@@ -40,14 +40,18 @@ export class AuthService {
   }
 
   async refresh(user: Partial<User> & { rememberMe?: boolean }) {
-    const account = await this.usersService.findById(user.user_id);
+    return {
+      ...(await this.completeMfa(user.user_id, user.rememberMe)),
+      rememberMe: user.rememberMe,
+    };
+  }
+
+  async completeMfa(user_id: string, rememberMe = false) {
+    const account = await this.usersService.findById(user_id);
     if (!account) throw new UnauthorizedException();
 
     const userData = { ...account };
     delete userData.password;
-    return {
-      ...this.login(userData, user.rememberMe),
-      rememberMe: user.rememberMe,
-    };
+    return this.login(userData, rememberMe);
   }
 }
