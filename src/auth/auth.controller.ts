@@ -13,12 +13,21 @@ import { RefreshTokenAuthGuard } from './jwt-auth.guard';
 import { GetUser } from '../decorators/get-user.decorator';
 import {
   accessCookieOptions,
+  clearCookieOptions,
   refreshCookieOptions,
 } from './refresh-cookie-options';
+import { MfaService } from './mfa.service';
+import { MfaMethod } from '../enums/MfaMethod';
+import { User } from '../entities/user.entity';
+
+type Session = ReturnType<AuthService['login']>;
 
 @Controller()
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private mfaService: MfaService,
+  ) {}
 
   @Post('auth/login')
   async login(@Body() loginDto: LoginDto, @Res() res: Response) {
@@ -29,23 +38,21 @@ export class AuthController {
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
-    const {
-      access_token,
-      refresh_token,
-      user: userData,
-    } = this.authService.login(user, loginDto.rememberMe);
+    if (user.mfa_method !== MfaMethod.NONE) {
+      const pending = await this.mfaService.createLoginChallenge(
+        user as Pick<User, 'user_id' | 'mfa_method'>,
+        loginDto.rememberMe,
+      );
+      this.clearSessionCookies(res);
+      res.json({ mfa_required: true, ...pending });
+      return;
+    }
 
-    res.cookie(
-      'refreshToken',
-      refresh_token,
-      refreshCookieOptions(loginDto.rememberMe),
+    this.sendSession(
+      res,
+      this.authService.login(user, loginDto.rememberMe),
+      loginDto.rememberMe,
     );
-    res.cookie('accessToken', access_token, accessCookieOptions());
-
-    res.json({
-      access_token,
-      user: userData,
-    });
   }
 
   @Post('auth/refresh')
@@ -54,23 +61,32 @@ export class AuthController {
     @GetUser() user: Record<string, unknown>,
     @Res() res: Response,
   ) {
-    const {
-      access_token,
-      refresh_token,
-      rememberMe,
-      user: userData,
-    } = await this.authService.refresh(user);
-
-    res.cookie('refreshToken', refresh_token, refreshCookieOptions(rememberMe));
-    res.cookie('accessToken', access_token, accessCookieOptions());
-
-    res.json({ access_token, user: userData });
+    const session = await this.authService.refresh(user);
+    this.sendSession(res, session, session.rememberMe);
   }
 
   @Post('auth/logout')
   logout(@Res() res: Response) {
-    res.clearCookie('refreshToken');
-    res.clearCookie('accessToken');
+    this.clearSessionCookies(res);
     res.json({ message: 'Logged out successfully' });
+  }
+
+  private sendSession(res: Response, session: Session, rememberMe = false) {
+    res.cookie(
+      'refreshToken',
+      session.refresh_token,
+      refreshCookieOptions(rememberMe),
+    );
+    res.cookie('accessToken', session.access_token, accessCookieOptions());
+    res.json({
+      mfa_required: false,
+      access_token: session.access_token,
+      user: session.user,
+    });
+  }
+
+  private clearSessionCookies(res: Response) {
+    res.clearCookie('refreshToken', clearCookieOptions());
+    res.clearCookie('accessToken', clearCookieOptions());
   }
 }

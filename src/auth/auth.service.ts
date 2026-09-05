@@ -24,10 +24,13 @@ export class AuthService {
 
   login(user: Partial<User>, rememberMe = false) {
     const payload = { email: user.email, sub: user.user_id, role: user.role };
-    const access_token = this.jwtService.sign(payload, { expiresIn: '15m' });
+    const access_token = this.jwtService.sign(payload, {
+      expiresIn: '15m',
+      algorithm: 'HS256',
+    });
     const refresh_token = this.jwtService.sign(
       { ...payload, type: 'refresh', rememberMe },
-      { expiresIn: '7d' },
+      { expiresIn: '7d', algorithm: 'HS256' },
     );
     return {
       access_token,
@@ -40,23 +43,11 @@ export class AuthService {
     const account = await this.usersService.findById(user.user_id);
     if (!account) throw new UnauthorizedException();
 
-    const payload = {
-      email: account.email,
-      sub: account.user_id,
-      role: account.role,
-    };
-    const access_token = this.jwtService.sign(payload, { expiresIn: '15m' });
-    const refresh_token = this.jwtService.sign(
-      { ...payload, type: 'refresh', rememberMe: user.rememberMe },
-      { expiresIn: '7d' },
-    );
     const userData = { ...account };
     delete userData.password;
     return {
-      access_token,
-      refresh_token,
+      ...this.login(userData, user.rememberMe),
       rememberMe: user.rememberMe,
-      user: userData,
     };
   }
 }

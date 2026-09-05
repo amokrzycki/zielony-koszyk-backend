@@ -38,7 +38,7 @@ export class MailService {
 
     // Read and compile the template
     const templateSource = fs.readFileSync(
-      path.join(__dirname, '../constants/order-confirmation.hbs'),
+      path.join(__dirname, '../../constants/order-confirmation.hbs'),
       'utf8',
     );
     const template = Handlebars.compile(templateSource);
@@ -92,7 +92,7 @@ export class MailService {
     const fromEmail = this.configService.get<string>('MAILGUN_FROM_EMAIL');
 
     const templateSource = fs.readFileSync(
-      path.join(__dirname, '../constants/welcome-email-created-user.hbs'),
+      path.join(__dirname, '../../constants/welcome-email-created-user.hbs'),
       'utf8',
     );
 

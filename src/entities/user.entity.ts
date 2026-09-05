@@ -7,10 +7,11 @@ import {
   OneToMany,
   Relation,
 } from 'typeorm';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'node:crypto';
 import { Roles } from '../enums/Roles';
 import { Exclude } from 'class-transformer';
 import { Address } from './address.entity';
+import { MfaMethod } from '../enums/MfaMethod';
 
 @Entity('users')
 export class User {
@@ -42,6 +43,22 @@ export class User {
   @Column()
   phone: string;
 
+  @Column({
+    type: 'enum',
+    enum: MfaMethod,
+    enumName: 'users_mfa_method_enum',
+    default: MfaMethod.NONE,
+  })
+  mfa_method: MfaMethod;
+
+  @Exclude()
+  @Column({ type: 'text', nullable: true, select: false })
+  totp_secret_encrypted: string | null;
+
+  @Exclude()
+  @Column({ type: 'integer', nullable: true, select: false })
+  totp_last_used_step: number | null;
+
   @CreateDateColumn()
   created_at: Date;
 
@@ -50,6 +67,6 @@ export class User {
 
   @BeforeInsert()
   generateId() {
-    this.user_id = uuidv4();
+    this.user_id = randomUUID();
   }
 }
