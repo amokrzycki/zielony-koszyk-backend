@@ -22,6 +22,24 @@ import { User } from '../entities/user.entity';
 
 type Session = ReturnType<AuthService['login']>;
 
+export const sendSession = (
+  res: Response,
+  session: Session,
+  rememberMe = false,
+) => {
+  res.cookie(
+    'refreshToken',
+    session.refresh_token,
+    refreshCookieOptions(rememberMe),
+  );
+  res.cookie('accessToken', session.access_token, accessCookieOptions());
+  res.json({
+    mfa_required: false,
+    access_token: session.access_token,
+    user: session.user,
+  });
+};
+
 @Controller()
 export class AuthController {
   constructor(
@@ -40,7 +58,7 @@ export class AuthController {
     }
     if (user.mfa_method !== MfaMethod.NONE) {
       const pending = await this.mfaService.createLoginChallenge(
-        user as Pick<User, 'user_id' | 'mfa_method'>,
+        user as Pick<User, 'user_id' | 'email' | 'mfa_method'>,
         loginDto.rememberMe,
       );
       this.clearSessionCookies(res);
@@ -48,7 +66,7 @@ export class AuthController {
       return;
     }
 
-    this.sendSession(
+    sendSession(
       res,
       this.authService.login(user, loginDto.rememberMe),
       loginDto.rememberMe,
@@ -62,27 +80,13 @@ export class AuthController {
     @Res() res: Response,
   ) {
     const session = await this.authService.refresh(user);
-    this.sendSession(res, session, session.rememberMe);
+    sendSession(res, session, session.rememberMe);
   }
 
   @Post('auth/logout')
   logout(@Res() res: Response) {
     this.clearSessionCookies(res);
     res.json({ message: 'Logged out successfully' });
-  }
-
-  private sendSession(res: Response, session: Session, rememberMe = false) {
-    res.cookie(
-      'refreshToken',
-      session.refresh_token,
-      refreshCookieOptions(rememberMe),
-    );
-    res.cookie('accessToken', session.access_token, accessCookieOptions());
-    res.json({
-      mfa_required: false,
-      access_token: session.access_token,
-      user: session.user,
-    });
   }
 
   private clearSessionCookies(res: Response) {
