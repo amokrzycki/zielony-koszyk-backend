@@ -20,11 +20,8 @@ import { DataSource } from 'typeorm';
     OrderItemService,
     {
       provide: 'ORDER_ITEM_SUBSCRIBER',
-      useFactory: (dataSource: DataSource) => {
-        const subscriber = new OrderItemSubscriber(dataSource);
-        dataSource.subscribers.push(subscriber);
-        return subscriber;
-      },
+      useFactory: (dataSource: DataSource) =>
+        new OrderItemSubscriber(dataSource),
       inject: [DataSource],
     },
   ],

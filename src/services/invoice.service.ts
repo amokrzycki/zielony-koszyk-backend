@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import PDFDocument from 'pdfkit';
+import PDFDocument = require('pdfkit');
 import * as path from 'path';
 import * as fs from 'fs';
 import { Order } from '../entities/order.entity';
@@ -20,16 +20,16 @@ export class InvoiceService {
 
     doc.registerFont(
       'OpenSansRegular',
-      path.join(__dirname, '../../fonts', 'OpenSans-Regular.ttf'),
+      path.join(process.cwd(), 'fonts', 'OpenSans-Regular.ttf'),
     );
     doc.registerFont(
       'OpenSansBold',
-      path.join(__dirname, '../../fonts', 'OpenSans-Bold.ttf'),
+      path.join(process.cwd(), 'fonts', 'OpenSans-Bold.ttf'),
     );
 
     doc.on('data', (chunk: Buffer) => chunks.push(chunk));
 
-    const logoPath = path.join(__dirname, '../../assets', 'logo.png'); // Dostosuj ścieżkę
+    const logoPath = path.join(process.cwd(), 'assets', 'logo.png');
 
     const widthLogo = 100;
     const pageWidth =
@@ -193,7 +193,7 @@ export class InvoiceService {
   }
 
   saveInvoiceToDisk(order: Order, pdfBuffer: Buffer): string {
-    const invoiceDir = path.join(__dirname, '../../invoices');
+    const invoiceDir = path.join(process.cwd(), 'invoices');
 
     if (!fs.existsSync(invoiceDir)) {
       fs.mkdirSync(invoiceDir, { recursive: true });
