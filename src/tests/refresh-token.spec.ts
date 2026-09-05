@@ -39,9 +39,13 @@ describe('refresh token authentication', () => {
       rememberMe: true,
     });
     expect(refreshStrategy.validate(payload)).toBe(false);
-    expect(accessStrategy.validate({ ...payload, type: 'refresh' })).toBe(
-      false,
-    );
+    expect(
+      accessStrategy.validate({
+        ...payload,
+        type: 'refresh',
+        rememberMe: false,
+      }),
+    ).toBe(false);
   });
 
   it('persists only remembered sessions', () => {

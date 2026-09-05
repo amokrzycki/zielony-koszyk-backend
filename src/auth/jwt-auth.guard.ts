@@ -8,3 +8,8 @@ export class JwtAuthGuard extends AuthGuard('jwt') implements IAuthGuard {}
 export class RefreshTokenAuthGuard
   extends AuthGuard('jwt-refresh')
   implements IAuthGuard {}
+
+@Injectable()
+export class MfaJwtAuthGuard
+  extends AuthGuard('jwt-mfa')
+  implements IAuthGuard {}

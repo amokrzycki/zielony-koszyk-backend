@@ -4,6 +4,8 @@ import { Strategy, ExtractJwt } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
 import { JWTPayload } from '../types/JWTPayload';
+import { MfaMethod } from '../enums/MfaMethod';
+import { MfaService } from './mfa.service';
 
 const tokenFromCookie = (request: Request, name: string) =>
   request.headers.cookie
@@ -28,11 +30,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       ]),
       ignoreExpiration: false,
       secretOrKey: configService.get<string>('JWT_SECRET'),
+      algorithms: ['HS256'],
     });
   }
 
   validate(payload: JWTPayload) {
-    if (payload.type) return false;
+    if (payload.type || !('email' in payload) || !('role' in payload)) {
+      return false;
+    }
 
     return { user_id: payload.sub, email: payload.email, role: payload.role };
   }
@@ -48,6 +53,7 @@ export class RefreshTokenStrategy extends PassportStrategy(
       jwtFromRequest: ExtractJwt.fromExtractors([refreshTokenFromCookie]),
       ignoreExpiration: false,
       secretOrKey: configService.get<string>('JWT_SECRET'),
+      algorithms: ['HS256'],
     });
   }
 
@@ -58,6 +64,44 @@ export class RefreshTokenStrategy extends PassportStrategy(
       user_id: payload.sub,
       email: payload.email,
       role: payload.role,
+      rememberMe: payload.rememberMe,
+    };
+  }
+}
+
+@Injectable()
+export class MfaJwtStrategy extends PassportStrategy(Strategy, 'jwt-mfa') {
+  constructor(
+    configService: ConfigService,
+    private mfaService: MfaService,
+  ) {
+    super({
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ignoreExpiration: false,
+      secretOrKey: configService.get<string>('JWT_SECRET'),
+      algorithms: ['HS256'],
+    });
+  }
+
+  async validate(payload: JWTPayload) {
+    if (
+      payload.type !== 'mfa' ||
+      !payload.sub ||
+      !payload.jti ||
+      typeof payload.rememberMe !== 'boolean' ||
+      ![MfaMethod.EMAIL_OTP, MfaMethod.TOTP, MfaMethod.WEBAUTHN].includes(
+        payload.method,
+      )
+    ) {
+      return false;
+    }
+
+    await this.mfaService.assertLoginChallenge(payload);
+
+    return {
+      user_id: payload.sub,
+      challenge_id: payload.jti,
+      method: payload.method,
       rememberMe: payload.rememberMe,
     };
   }
