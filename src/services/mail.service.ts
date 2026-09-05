@@ -6,7 +6,7 @@ import Handlebars from 'handlebars';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { formatDate } from '../utils/formatDate';
-import FormData from 'form-data';
+import * as FormData from 'form-data';
 import { User } from '../entities/user.entity';
 import { OrderType } from '../types/OrderType';
 
