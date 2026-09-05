@@ -1,5 +1,7 @@
 import {
   BadRequestException,
+  HttpException,
+  HttpStatus,
   Injectable,
   ServiceUnavailableException,
   UnauthorizedException,
@@ -15,6 +17,7 @@ import {
 } from 'node:crypto';
 import { EntityManager, Repository } from 'typeorm';
 import {
+  MFA_EMAIL_OTP_RESEND_COOLDOWN_MS,
   MFA_LOGIN_CHALLENGE_TTL_MS,
   MFA_MAX_ATTEMPTS,
   MFA_TOKEN_TTL,
@@ -62,12 +65,39 @@ export class MfaService {
     }
 
     return this.challenges.manager.transaction(async (manager) => {
+      if (method === MfaMethod.EMAIL_OTP) {
+        await manager.query(
+          'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
+          [`${user_id}:${purpose}`],
+        );
+      }
+
       const challenges = manager.getRepository(MfaChallenge);
       const existing = await challenges.findOne({
         where: { user_id, purpose },
         lock: { mode: 'pessimistic_write' },
       });
-      const withinAttemptWindow = existing?.expires_at.getTime() > Date.now();
+      const now = Date.now();
+      const withinAttemptWindow = existing?.expires_at.getTime() > now;
+      if (withinAttemptWindow && existing.attempt_count >= MFA_MAX_ATTEMPTS) {
+        throw new HttpException(
+          'Too many MFA attempts',
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
+      if (
+        existing?.method === MfaMethod.EMAIL_OTP &&
+        existing.expires_at.getTime() -
+          ttlMs +
+          MFA_EMAIL_OTP_RESEND_COOLDOWN_MS >
+          now
+      ) {
+        throw new HttpException(
+          'Please wait before requesting another MFA code',
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
+
       const challenge = challenges.create({
         challenge_id: randomUUID(),
         user_id,
@@ -77,9 +107,7 @@ export class MfaService {
         webauthn_challenge: null,
         totp_secret_encrypted: null,
         attempt_count: withinAttemptWindow ? existing.attempt_count : 0,
-        expires_at: withinAttemptWindow
-          ? existing.expires_at
-          : new Date(Date.now() + ttlMs),
+        expires_at: new Date(now + ttlMs),
         ...secrets,
       });
 

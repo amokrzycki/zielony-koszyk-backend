@@ -22,6 +22,10 @@ import {
 import { MfaService } from '../auth/mfa.service';
 import { MfaController } from '../auth/mfa.controller';
 import {
+  MFA_EMAIL_OTP_RESEND_COOLDOWN_MS,
+  MFA_LOGIN_CHALLENGE_TTL_MS,
+} from '../constants/constants';
+import {
   MfaChallenge,
   MfaChallengePurpose,
 } from '../entities/mfa-challenge.entity';
@@ -169,6 +173,7 @@ const mfaServiceFixture = (
   };
   const manager = {
     getRepository: () => repository,
+    query: jest.fn(),
   } as unknown as EntityManager;
   Object.assign(repository, {
     manager: {
@@ -201,7 +206,7 @@ const mfaServiceFixture = (
 describe('MFA challenge lifecycle', () => {
   it('enforces replacement, TTL, attempt limit and one-time consumption', async () => {
     const { challenges, jwtService, repository, service } = mfaServiceFixture();
-    const account = user(MfaMethod.EMAIL_OTP);
+    const account = user(MfaMethod.TOTP);
     const first = await service.createLoginChallenge(account, true);
     const firstPayload = jwtService.verify<
       MfaTokenPayload & { exp: number; iat: number }
@@ -227,24 +232,24 @@ describe('MFA challenge lifecycle', () => {
     }
     expect(challenges.get(payload.jti)?.attempt_count).toBe(5);
 
-    const locked = await service.createLoginChallenge(account, true);
-    const lockedPayload = jwtService.verify<MfaTokenPayload>(locked.mfa_token, {
-      algorithms: ['HS256'],
+    await expect(
+      service.createLoginChallenge(account, true),
+    ).rejects.toMatchObject({
+      status: 429,
+      message: 'Too many MFA attempts',
     });
-    expect(lockedPayload.jti).not.toBe(payload.jti);
-    expect(challenges.get(lockedPayload.jti)?.attempt_count).toBe(5);
 
     const valid = jest.fn().mockReturnValue(true);
-    await expect(
-      service.consumeLoginChallenge(lockedPayload, valid),
-    ).rejects.toThrow('Invalid or expired MFA challenge');
+    await expect(service.consumeLoginChallenge(payload, valid)).rejects.toThrow(
+      'Invalid or expired MFA challenge',
+    );
     expect(valid).not.toHaveBeenCalled();
     expect(challenges.size).toBe(1);
 
-    const lockedChallenge = challenges.get(lockedPayload.jti);
+    const lockedChallenge = challenges.get(payload.jti);
     if (!lockedChallenge) throw new Error('Expected locked challenge');
     lockedChallenge.expires_at = new Date(Date.now() - 1);
-    await expect(service.assertLoginChallenge(lockedPayload)).rejects.toThrow(
+    await expect(service.assertLoginChallenge(payload)).rejects.toThrow(
       'Invalid or expired MFA challenge',
     );
     expect(challenges.size).toBe(0);
@@ -344,6 +349,8 @@ describe('Email OTP', () => {
     acceptMail!();
     await pending;
 
+    const delivered = [...fixture.challenges.values()][0];
+    delivered.expires_at = new Date(Date.now() - 1);
     fixture.sendMfaOtp.mockRejectedValueOnce(new Error('SMTP credentials'));
     await expect(
       fixture.service.createLoginChallenge(account),
@@ -354,12 +361,27 @@ describe('Email OTP', () => {
     expect(fixture.challenges.size).toBe(0);
   });
 
-  it('rejects replaced, expired and attempt-limited codes', async () => {
+  it('throttles resends, refreshes expiry and rejects locked challenges', async () => {
     const { challenges, jwtService, sendMfaOtp, service } = mfaServiceFixture();
     const account = user(MfaMethod.EMAIL_OTP);
     const first = await service.createLoginChallenge(account);
     const firstPayload = jwtService.verify<MfaTokenPayload>(first.mfa_token);
     const firstCode = sendMfaOtp.mock.calls[0][1] as string;
+
+    await expect(service.createLoginChallenge(account)).rejects.toMatchObject({
+      status: 429,
+      message: 'Please wait before requesting another MFA code',
+    });
+    expect(sendMfaOtp).toHaveBeenCalledTimes(1);
+
+    const firstChallenge = challenges.get(firstPayload.jti);
+    if (!firstChallenge) throw new Error('Expected first challenge');
+    firstChallenge.expires_at = new Date(
+      Date.now() +
+        MFA_LOGIN_CHALLENGE_TTL_MS -
+        MFA_EMAIL_OTP_RESEND_COOLDOWN_MS -
+        1,
+    );
     const second = await service.createLoginChallenge(account);
     const secondPayload = jwtService.verify<MfaTokenPayload>(second.mfa_token);
     const secondCode = sendMfaOtp.mock.calls[1][1] as string;
@@ -370,27 +392,22 @@ describe('Email OTP', () => {
 
     const current = challenges.get(secondPayload.jti);
     if (!current) throw new Error('Expected current challenge');
-    current.expires_at = new Date(Date.now() - 1);
-    await expect(
-      service.verifyEmailOtp(account.user_id, secondPayload.jti, secondCode),
-    ).rejects.toThrow('Invalid or expired MFA challenge');
-    expect(challenges.size).toBe(0);
-
-    const limited = await service.createLoginChallenge(account);
-    const limitedPayload = jwtService.verify<MfaTokenPayload>(
-      limited.mfa_token,
+    expect(current.expires_at.getTime()).toBeGreaterThanOrEqual(
+      Date.now() + MFA_LOGIN_CHALLENGE_TTL_MS - 1_000,
     );
-    const validCode = sendMfaOtp.mock.calls[2][1] as string;
-    const wrongCode = validCode === '000000' ? '000001' : '000000';
+
+    const wrongCode = secondCode === '000000' ? '000001' : '000000';
     for (let attempt = 0; attempt < 5; attempt += 1) {
       await expect(
-        service.verifyEmailOtp(account.user_id, limitedPayload.jti, wrongCode),
+        service.verifyEmailOtp(account.user_id, secondPayload.jti, wrongCode),
       ).rejects.toThrow('Invalid or expired MFA challenge');
     }
-    await expect(
-      service.verifyEmailOtp(account.user_id, limitedPayload.jti, validCode),
-    ).rejects.toThrow('Invalid or expired MFA challenge');
-    expect(challenges.get(limitedPayload.jti)?.attempt_count).toBe(5);
+    await expect(service.createLoginChallenge(account)).rejects.toMatchObject({
+      status: 429,
+      message: 'Too many MFA attempts',
+    });
+    expect(sendMfaOtp).toHaveBeenCalledTimes(2);
+    expect(challenges.get(secondPayload.jti)?.attempt_count).toBe(5);
   });
 });
 
