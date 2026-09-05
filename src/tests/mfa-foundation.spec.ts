@@ -215,11 +215,26 @@ describe('MFA challenge lifecycle', () => {
     }
     expect(challenges.get(payload.jti)?.attempt_count).toBe(5);
 
+    const locked = await service.createLoginChallenge(account, true);
+    const lockedPayload = jwtService.verify<MfaTokenPayload>(locked.mfa_token, {
+      algorithms: ['HS256'],
+    });
+    expect(lockedPayload.jti).not.toBe(payload.jti);
+    expect(challenges.get(lockedPayload.jti)?.attempt_count).toBe(5);
+
     const valid = jest.fn().mockReturnValue(true);
-    await expect(service.consumeLoginChallenge(payload, valid)).rejects.toThrow(
+    await expect(
+      service.consumeLoginChallenge(lockedPayload, valid),
+    ).rejects.toThrow('Invalid or expired MFA challenge');
+    expect(valid).not.toHaveBeenCalled();
+    expect(challenges.size).toBe(1);
+
+    const lockedChallenge = challenges.get(lockedPayload.jti);
+    if (!lockedChallenge) throw new Error('Expected locked challenge');
+    lockedChallenge.expires_at = new Date(Date.now() - 1);
+    await expect(service.assertLoginChallenge(lockedPayload)).rejects.toThrow(
       'Invalid or expired MFA challenge',
     );
-    expect(valid).not.toHaveBeenCalled();
     expect(challenges.size).toBe(0);
 
     const expiring = await service.createChallenge(

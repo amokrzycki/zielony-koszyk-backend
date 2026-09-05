@@ -48,20 +48,31 @@ export class MfaService {
       throw new BadRequestException('MFA is not enabled');
     }
 
-    const challenge = this.challenges.create({
-      challenge_id: randomUUID(),
-      user_id,
-      method,
-      purpose,
-      otp_digest: null,
-      webauthn_challenge: null,
-      totp_secret_encrypted: null,
-      attempt_count: 0,
-      expires_at: new Date(Date.now() + ttlMs),
-    });
+    return this.challenges.manager.transaction(async (manager) => {
+      const challenges = manager.getRepository(MfaChallenge);
+      const existing = await challenges.findOne({
+        where: { user_id, purpose },
+        lock: { mode: 'pessimistic_write' },
+      });
+      const withinAttemptWindow =
+        existing?.expires_at.getTime() > Date.now();
+      const challenge = challenges.create({
+        challenge_id: randomUUID(),
+        user_id,
+        method,
+        purpose,
+        otp_digest: null,
+        webauthn_challenge: null,
+        totp_secret_encrypted: null,
+        attempt_count: withinAttemptWindow ? existing.attempt_count : 0,
+        expires_at: withinAttemptWindow
+          ? existing.expires_at
+          : new Date(Date.now() + ttlMs),
+      });
 
-    await this.challenges.upsert(challenge, ['user_id', 'purpose']);
-    return challenge;
+      await challenges.upsert(challenge, ['user_id', 'purpose']);
+      return challenge;
+    });
   }
 
   async createLoginChallenge(
@@ -104,7 +115,7 @@ export class MfaService {
     const challenge = await this.challenges.findOne({ where: identity });
 
     if (!challenge || !this.isUsable(challenge)) {
-      if (challenge) {
+      if (challenge && this.isExpired(challenge)) {
         await this.challenges.delete({ challenge_id: challenge.challenge_id });
       }
       throw new UnauthorizedException('Invalid or expired MFA challenge');
@@ -137,7 +148,7 @@ export class MfaService {
         });
 
         if (!challenge || !this.isUsable(challenge)) {
-          if (challenge) {
+          if (challenge && this.isExpired(challenge)) {
             await challenges.delete({ challenge_id: challenge.challenge_id });
           }
           return false;
@@ -176,8 +187,12 @@ export class MfaService {
 
   private isUsable(challenge: MfaChallenge) {
     return (
-      challenge.expires_at.getTime() > Date.now() &&
+      !this.isExpired(challenge) &&
       challenge.attempt_count < MFA_MAX_ATTEMPTS
     );
+  }
+
+  private isExpired(challenge: MfaChallenge) {
+    return challenge.expires_at.getTime() <= Date.now();
   }
 }
