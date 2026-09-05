@@ -1,4 +1,14 @@
-import { IsNotEmpty, IsString, IsUUID, Matches } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsObject,
+  IsString,
+  IsUUID,
+  Matches,
+} from 'class-validator';
+import type {
+  AuthenticationResponseJSON,
+  RegistrationResponseJSON,
+} from '@simplewebauthn/server';
 
 export class MfaCodeDto {
   @IsString()
@@ -19,4 +29,23 @@ export class TotpEnrollmentDto {
 export class TotpEnrollmentVerifyDto extends TotpCodeDto {
   @IsUUID()
   challenge_id: string;
+}
+
+export class WebAuthnRegistrationDto {
+  @IsString()
+  @IsNotEmpty()
+  password: string;
+}
+
+export class WebAuthnRegistrationVerifyDto {
+  @IsUUID()
+  challenge_id: string;
+
+  @IsObject()
+  response: RegistrationResponseJSON;
+}
+
+export class WebAuthnAuthenticationVerifyDto {
+  @IsObject()
+  response: AuthenticationResponseJSON;
 }

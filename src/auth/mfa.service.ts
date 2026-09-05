@@ -18,6 +18,12 @@ import {
 } from 'node:crypto';
 import * as bcrypt from 'bcrypt';
 import * as OTPAuth from 'otpauth';
+import type {
+  AuthenticationResponseJSON,
+  RegistrationResponseJSON,
+  VerifiedAuthenticationResponse,
+  VerifiedRegistrationResponse,
+} from '@simplewebauthn/server';
 import { EntityManager, Repository } from 'typeorm';
 import {
   MFA_EMAIL_OTP_RESEND_COOLDOWN_MS,
@@ -46,6 +52,7 @@ import {
   encryptTotpSecret,
   parseTotpEncryptionKey,
 } from './totp-secret.crypto';
+import { WebAuthnService } from './webauthn.service';
 
 type ChallengeIdentity = Pick<
   MfaChallenge,
@@ -74,6 +81,9 @@ export class MfaService {
     private jwtService: JwtService,
     private configService: ConfigService,
     private mailService: MailService,
+    @InjectRepository(WebAuthnCredential)
+    private credentials: Repository<WebAuthnCredential>,
+    private webAuthnService: WebAuthnService,
   ) {
     this.totpEncryptionKey = parseTotpEncryptionKey(
       configService.get<string>('MFA_TOTP_ENCRYPTION_KEY'),
@@ -151,6 +161,13 @@ export class MfaService {
       await this.assertTotpConfigured(user.user_id);
     }
 
+    const webauthnOptions =
+      user.mfa_method === MfaMethod.WEBAUTHN
+        ? await this.webAuthnService.generateAuthenticationOptions(
+            await this.requireCredential(user.user_id),
+          )
+        : undefined;
+
     const challenge =
       user.mfa_method === MfaMethod.EMAIL_OTP
         ? await this.createEmailOtpChallenge(user)
@@ -159,6 +176,9 @@ export class MfaService {
             user.mfa_method,
             MfaChallengePurpose.LOGIN,
             MFA_LOGIN_CHALLENGE_TTL_MS,
+            webauthnOptions
+              ? { webauthn_challenge: webauthnOptions.challenge }
+              : undefined,
           );
     const payload: MfaTokenPayload = {
       sub: user.user_id,
@@ -174,6 +194,7 @@ export class MfaService {
         expiresIn: MFA_TOKEN_TTL,
         algorithm: 'HS256',
       }),
+      ...(webauthnOptions ? { webauthn_options: webauthnOptions } : {}),
     };
   }
 
@@ -336,6 +357,152 @@ export class MfaService {
         return true;
       },
     );
+  }
+
+  async startWebAuthnRegistration(user_id: string, password: string) {
+    const account = await this.users.findOne({
+      where: { user_id },
+      select: { user_id: true, email: true, password: true },
+    });
+    if (!account || !(await bcrypt.compare(password, account.password))) {
+      throw new ForbiddenException('Invalid credentials');
+    }
+
+    const existingCredential = await this.loadCredential(user_id);
+    const options = await this.webAuthnService.generateRegistrationOptions(
+      account,
+      existingCredential ?? undefined,
+    );
+    const challenge = await this.createChallenge(
+      user_id,
+      MfaMethod.WEBAUTHN,
+      MfaChallengePurpose.ENROLLMENT,
+      MFA_ENROLLMENT_CHALLENGE_TTL_MS,
+      { webauthn_challenge: options.challenge },
+    );
+
+    return { challenge_id: challenge.challenge_id, options };
+  }
+
+  async verifyWebAuthnRegistration(
+    user_id: string,
+    challenge_id: string,
+    response: RegistrationResponseJSON,
+  ) {
+    try {
+      await this.consumeChallenge(
+        {
+          challenge_id,
+          user_id,
+          method: MfaMethod.WEBAUTHN,
+          purpose: MfaChallengePurpose.ENROLLMENT,
+        },
+        async (challenge, manager) => {
+          if (!challenge.webauthn_challenge) return false;
+
+          let verification: VerifiedRegistrationResponse | null;
+          try {
+            verification = await this.webAuthnService.verifyRegistration(
+              response,
+              challenge.webauthn_challenge,
+            );
+          } catch {
+            verification = null;
+          }
+          if (!verification?.verified || !verification.registrationInfo) {
+            return false;
+          }
+
+          const users = manager.getRepository(User);
+          const account = await users.findOne({
+            where: { user_id },
+            loadEagerRelations: false,
+            lock: { mode: 'pessimistic_write' },
+          });
+          if (!account) return false;
+
+          const { credential } = verification.registrationInfo;
+          const credentials = manager.getRepository(WebAuthnCredential);
+          await credentials.delete({ user_id });
+          await credentials.insert({
+            credential_id: credential.id,
+            user_id,
+            public_key: Buffer.from(credential.publicKey),
+            sign_count: credential.counter,
+          });
+
+          account.mfa_method = MfaMethod.WEBAUTHN;
+          account.totp_secret_encrypted = null;
+          account.totp_last_used_step = null;
+          await users.save(account);
+          return true;
+        },
+      );
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw new BadRequestException('Invalid or expired MFA challenge');
+      }
+      throw error;
+    }
+  }
+
+  async verifyWebAuthnAuthentication(
+    user_id: string,
+    challenge_id: string,
+    response: AuthenticationResponseJSON,
+  ) {
+    await this.consumeChallenge(
+      {
+        challenge_id,
+        user_id,
+        method: MfaMethod.WEBAUTHN,
+        purpose: MfaChallengePurpose.LOGIN,
+      },
+      async (challenge, manager) => {
+        if (!challenge.webauthn_challenge) return false;
+
+        const credentials = manager.getRepository(WebAuthnCredential);
+        const credential = await credentials.findOne({
+          where: { user_id },
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (!credential || credential.credential_id !== response.id) {
+          return false;
+        }
+
+        let verification: VerifiedAuthenticationResponse | null;
+        try {
+          verification = await this.webAuthnService.verifyAuthentication(
+            response,
+            challenge.webauthn_challenge,
+            {
+              id: credential.credential_id,
+              publicKey: credential.public_key,
+              counter: credential.sign_count,
+            },
+          );
+        } catch {
+          verification = null;
+        }
+        if (!verification?.verified) return false;
+
+        credential.sign_count = verification.authenticationInfo.newCounter;
+        await credentials.save(credential);
+        return true;
+      },
+    );
+  }
+
+  private async loadCredential(user_id: string) {
+    return this.credentials.findOne({ where: { user_id } });
+  }
+
+  private async requireCredential(user_id: string) {
+    const credential = await this.loadCredential(user_id);
+    if (!credential) {
+      throw new UnauthorizedException('Invalid MFA configuration');
+    }
+    return credential;
   }
 
   async assertLoginChallenge(payload: MfaTokenPayload) {
