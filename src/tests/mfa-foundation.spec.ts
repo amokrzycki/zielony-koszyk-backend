@@ -29,7 +29,7 @@ import {
   MfaChallenge,
   MfaChallengePurpose,
 } from '../entities/mfa-challenge.entity';
-import type { User } from '../entities/user.entity';
+import { User } from '../entities/user.entity';
 import { MfaMethod } from '../enums/MfaMethod';
 import type { UserService } from '../services/user.service';
 import type { MailService } from '../services/mail.service';
@@ -171,8 +171,16 @@ const mfaServiceFixture = (
       challenges.delete(challenge_id);
     }),
   };
+  const userRepository = {
+    findOne: jest.fn(({ where }: { where: Partial<User> }) => ({
+      user_id: where.user_id,
+      mfa_method: where.mfa_method ?? MfaMethod.TOTP,
+      totp_secret_encrypted: 'configured',
+    })),
+  };
   const manager = {
-    getRepository: () => repository,
+    getRepository: (entity: unknown) =>
+      entity === User ? userRepository : repository,
     query: jest.fn(),
   } as unknown as EntityManager;
   Object.assign(repository, {
@@ -185,6 +193,7 @@ const mfaServiceFixture = (
   const jwtService = new JwtService({ secret: 'test-secret' });
   const configService = new ConfigService({
     MFA_OTP_HMAC_KEY: otpHmacKey,
+    MFA_TOTP_ENCRYPTION_KEY: Buffer.alloc(32, 2).toString('base64'),
   });
   const sendMfaOtp = jest.fn().mockResolvedValue(undefined);
   const mailService = { sendMfaOtp } as unknown as MailService;
@@ -196,6 +205,7 @@ const mfaServiceFixture = (
     repository,
     service: new MfaService(
       repository as unknown as Repository<MfaChallenge>,
+      userRepository as unknown as Repository<User>,
       jwtService,
       configService,
       mailService,

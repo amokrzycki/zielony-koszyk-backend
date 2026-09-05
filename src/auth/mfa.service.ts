@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   HttpException,
   HttpStatus,
   Injectable,
@@ -15,21 +16,36 @@ import {
   randomUUID,
   timingSafeEqual,
 } from 'node:crypto';
+import * as bcrypt from 'bcrypt';
+import * as OTPAuth from 'otpauth';
 import { EntityManager, Repository } from 'typeorm';
 import {
   MFA_EMAIL_OTP_RESEND_COOLDOWN_MS,
+  MFA_ENROLLMENT_CHALLENGE_TTL_MS,
   MFA_LOGIN_CHALLENGE_TTL_MS,
   MFA_MAX_ATTEMPTS,
   MFA_TOKEN_TTL,
+  MFA_TOTP_ALGORITHM,
+  MFA_TOTP_DIGITS,
+  MFA_TOTP_ISSUER,
+  MFA_TOTP_PERIOD_SECONDS,
+  MFA_TOTP_SECRET_BYTES,
+  MFA_TOTP_WINDOW,
 } from '../constants/constants';
 import {
   MfaChallenge,
   MfaChallengePurpose,
 } from '../entities/mfa-challenge.entity';
 import { User } from '../entities/user.entity';
+import { WebAuthnCredential } from '../entities/webauthn-credential.entity';
 import { MfaMethod } from '../enums/MfaMethod';
 import { MailService } from '../services/mail.service';
 import { MfaTokenPayload } from '../types/JWTPayload';
+import {
+  decryptTotpSecret,
+  encryptTotpSecret,
+  parseTotpEncryptionKey,
+} from './totp-secret.crypto';
 
 type ChallengeIdentity = Pick<
   MfaChallenge,
@@ -41,17 +57,28 @@ type ChallengeVerifier = (
   manager: EntityManager,
 ) => boolean | Promise<boolean>;
 
-type ChallengeSecrets = Pick<MfaChallenge, 'challenge_id' | 'otp_digest'>;
+type ChallengeSecrets = Pick<
+  MfaChallenge,
+  'challenge_id' | 'otp_digest' | 'webauthn_challenge' | 'totp_secret_encrypted'
+>;
 
 @Injectable()
 export class MfaService {
+  private readonly totpEncryptionKey: Buffer;
+
   constructor(
     @InjectRepository(MfaChallenge)
     private challenges: Repository<MfaChallenge>,
+    @InjectRepository(User)
+    private users: Repository<User>,
     private jwtService: JwtService,
     private configService: ConfigService,
     private mailService: MailService,
-  ) {}
+  ) {
+    this.totpEncryptionKey = parseTotpEncryptionKey(
+      configService.get<string>('MFA_TOTP_ENCRYPTION_KEY'),
+    );
+  }
 
   async createChallenge(
     user_id: string,
@@ -120,6 +147,10 @@ export class MfaService {
     user: Pick<User, 'user_id' | 'email' | 'mfa_method'>,
     rememberMe = false,
   ) {
+    if (user.mfa_method === MfaMethod.TOTP) {
+      await this.assertTotpConfigured(user.user_id);
+    }
+
     const challenge =
       user.mfa_method === MfaMethod.EMAIL_OTP
         ? await this.createEmailOtpChallenge(user)
@@ -146,6 +177,95 @@ export class MfaService {
     };
   }
 
+  async startTotpEnrollment(user_id: string, password: string) {
+    const account = await this.users.findOne({
+      where: { user_id },
+      select: { user_id: true, email: true, password: true },
+    });
+    if (!account || !(await bcrypt.compare(password, account.password))) {
+      throw new ForbiddenException('Invalid credentials');
+    }
+
+    const secret = new OTPAuth.Secret({ size: MFA_TOTP_SECRET_BYTES });
+    const totp = this.totp(secret.base32, account.email);
+    const challenge = await this.createChallenge(
+      user_id,
+      MfaMethod.TOTP,
+      MfaChallengePurpose.ENROLLMENT,
+      MFA_ENROLLMENT_CHALLENGE_TTL_MS,
+      {
+        totp_secret_encrypted: encryptTotpSecret(
+          secret.base32,
+          user_id,
+          this.totpEncryptionKey,
+        ),
+      },
+    );
+
+    return {
+      challenge_id: challenge.challenge_id,
+      otpauth_uri: totp.toString(),
+      secret: secret.base32,
+    };
+  }
+
+  async verifyTotpEnrollment(
+    user_id: string,
+    challenge_id: string,
+    code: string,
+  ) {
+    try {
+      await this.consumeChallenge(
+        {
+          challenge_id,
+          user_id,
+          method: MfaMethod.TOTP,
+          purpose: MfaChallengePurpose.ENROLLMENT,
+        },
+        async (challenge, manager) => {
+          if (!challenge.totp_secret_encrypted) return false;
+
+          const users = manager.getRepository(User);
+          const account = await users.findOne({
+            where: { user_id },
+            select: { user_id: true, email: true },
+            loadEagerRelations: false,
+            lock: { mode: 'pessimistic_write' },
+          });
+          if (!account) return false;
+
+          const secret = decryptTotpSecret(
+            challenge.totp_secret_encrypted,
+            user_id,
+            this.totpEncryptionKey,
+          );
+          const acceptedStep = this.acceptedTotpStep(
+            secret,
+            account.email,
+            code,
+          );
+          if (acceptedStep === null) return false;
+
+          account.mfa_method = MfaMethod.TOTP;
+          account.totp_secret_encrypted = encryptTotpSecret(
+            secret,
+            user_id,
+            this.totpEncryptionKey,
+          );
+          account.totp_last_used_step = acceptedStep;
+          await users.save(account);
+          await manager.getRepository(WebAuthnCredential).delete({ user_id });
+          return true;
+        },
+      );
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw new BadRequestException('Invalid or expired MFA challenge');
+      }
+      throw error;
+    }
+  }
+
   async verifyEmailOtp(user_id: string, challenge_id: string, code: string) {
     await this.consumeChallenge(
       {
@@ -154,7 +274,67 @@ export class MfaService {
         method: MfaMethod.EMAIL_OTP,
         purpose: MfaChallengePurpose.LOGIN,
       },
-      (challenge) => this.matchesEmailOtp(challenge, code),
+      async (challenge, manager) => {
+        const account = await manager.getRepository(User).findOne({
+          where: { user_id, mfa_method: MfaMethod.EMAIL_OTP },
+          select: { user_id: true },
+          loadEagerRelations: false,
+          lock: { mode: 'pessimistic_write' },
+        });
+
+        return Boolean(account) && this.matchesEmailOtp(challenge, code);
+      },
+    );
+  }
+
+  async verifyTotp(user_id: string, challenge_id: string, code: string) {
+    await this.consumeChallenge(
+      {
+        challenge_id,
+        user_id,
+        method: MfaMethod.TOTP,
+        purpose: MfaChallengePurpose.LOGIN,
+      },
+      async (_challenge, manager) => {
+        const users = manager.getRepository(User);
+        const account = await users.findOne({
+          where: { user_id },
+          select: {
+            user_id: true,
+            email: true,
+            mfa_method: true,
+            totp_secret_encrypted: true,
+            totp_last_used_step: true,
+          },
+          loadEagerRelations: false,
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (
+          !account ||
+          account.mfa_method !== MfaMethod.TOTP ||
+          !account.totp_secret_encrypted
+        ) {
+          return false;
+        }
+
+        const secret = decryptTotpSecret(
+          account.totp_secret_encrypted,
+          user_id,
+          this.totpEncryptionKey,
+        );
+        const acceptedStep = this.acceptedTotpStep(secret, account.email, code);
+        if (
+          acceptedStep === null ||
+          (account.totp_last_used_step !== null &&
+            acceptedStep <= account.totp_last_used_step)
+        ) {
+          return false;
+        }
+
+        account.totp_last_used_step = acceptedStep;
+        await users.save(account);
+        return true;
+      },
     );
   }
 
@@ -249,6 +429,46 @@ export class MfaService {
 
   private isExpired(challenge: MfaChallenge) {
     return challenge.expires_at.getTime() <= Date.now();
+  }
+
+  private async assertTotpConfigured(user_id: string) {
+    const account = await this.users.findOne({
+      where: { user_id },
+      select: {
+        user_id: true,
+        mfa_method: true,
+        totp_secret_encrypted: true,
+      },
+    });
+    if (
+      account?.mfa_method !== MfaMethod.TOTP ||
+      !account.totp_secret_encrypted
+    ) {
+      throw new UnauthorizedException('Invalid MFA configuration');
+    }
+  }
+
+  private totp(secret: string, email: string) {
+    return new OTPAuth.TOTP({
+      issuer: MFA_TOTP_ISSUER,
+      label: email,
+      algorithm: MFA_TOTP_ALGORITHM,
+      digits: MFA_TOTP_DIGITS,
+      period: MFA_TOTP_PERIOD_SECONDS,
+      secret: OTPAuth.Secret.fromBase32(secret),
+    });
+  }
+
+  private acceptedTotpStep(secret: string, email: string, code: string) {
+    const timestamp = Date.now();
+    const totp = this.totp(secret, email);
+    const delta = totp.validate({
+      token: code,
+      timestamp,
+      window: MFA_TOTP_WINDOW,
+    });
+
+    return delta === null ? null : totp.counter({ timestamp }) + delta;
   }
 
   private async createEmailOtpChallenge(user: Pick<User, 'user_id' | 'email'>) {

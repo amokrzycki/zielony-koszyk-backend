@@ -17,8 +17,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { MfaChallenge } from '../entities/mfa-challenge.entity';
 import { WebAuthnCredential } from '../entities/webauthn-credential.entity';
 import { MfaService } from './mfa.service';
-import { MfaController } from './mfa.controller';
+import { MfaController, TotpEnrollmentController } from './mfa.controller';
 import { MailModule } from '../modules/mail.module';
+import { User } from '../entities/user.entity';
 
 @Module({
   imports: [
@@ -27,7 +28,7 @@ import { MailModule } from '../modules/mail.module';
     OrderModule,
     OrderItemModule,
     MailModule,
-    TypeOrmModule.forFeature([MfaChallenge, WebAuthnCredential]),
+    TypeOrmModule.forFeature([MfaChallenge, WebAuthnCredential, User]),
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -46,7 +47,7 @@ import { MailModule } from '../modules/mail.module';
     RefreshTokenStrategy,
     MfaJwtStrategy,
   ],
-  controllers: [AuthController, MfaController],
+  controllers: [AuthController, MfaController, TotpEnrollmentController],
   exports: [AuthService, MfaService],
 })
 export class AuthModule {}
