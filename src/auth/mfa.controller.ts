@@ -18,6 +18,7 @@ import { AuthService } from './auth.service';
 import { sendSession } from './auth.controller';
 import { JwtAuthGuard, MfaJwtAuthGuard } from './jwt-auth.guard';
 import { MfaService } from './mfa.service';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 
 type PendingMfaUser = {
   user_id: string;
@@ -32,6 +33,7 @@ type AuthenticatedUser = Pick<PendingMfaUser, 'user_id'> & {
 
 @Controller('auth/mfa')
 @ApiBearerAuth()
+@UseGuards(ThrottlerGuard, MfaJwtAuthGuard)
 export class MfaController {
   constructor(
     private mfaService: MfaService,
@@ -39,7 +41,6 @@ export class MfaController {
   ) {}
 
   @Post('email-otp/verify')
-  @UseGuards(MfaJwtAuthGuard)
   async verifyEmailOtp(
     @GetUser() user: PendingMfaUser,
     @Body() body: EmailOtpDto,
@@ -59,7 +60,6 @@ export class MfaController {
   }
 
   @Post('totp/verify')
-  @UseGuards(MfaJwtAuthGuard)
   async verifyTotp(
     @GetUser() user: PendingMfaUser,
     @Body() body: TotpCodeDto,
@@ -79,7 +79,6 @@ export class MfaController {
   }
 
   @Post('webauthn/verify')
-  @UseGuards(MfaJwtAuthGuard)
   async verifyWebAuthn(
     @GetUser() user: PendingMfaUser,
     @Body() body: WebAuthnAuthenticationVerifyDto,
@@ -101,7 +100,8 @@ export class MfaController {
 
 @Controller('users/me/mfa')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@Throttle({ default: { limit: 5, ttl: 60_000 } })
+@UseGuards(ThrottlerGuard, JwtAuthGuard)
 export class MfaSettingsController {
   constructor(private mfaService: MfaService) {}
 
@@ -121,7 +121,8 @@ export class MfaSettingsController {
 
 @Controller('users/me/mfa/totp')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@Throttle({ default: { limit: 5, ttl: 60_000 } })
+@UseGuards(ThrottlerGuard, JwtAuthGuard)
 export class TotpEnrollmentController {
   constructor(private mfaService: MfaService) {}
 
@@ -154,7 +155,8 @@ export class TotpEnrollmentController {
 
 @Controller('users/me/mfa/webauthn')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@Throttle({ default: { limit: 5, ttl: 60_000 } })
+@UseGuards(ThrottlerGuard, JwtAuthGuard)
 export class WebAuthnEnrollmentController {
   constructor(private mfaService: MfaService) {}
 

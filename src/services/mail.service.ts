@@ -114,7 +114,7 @@ export class MailService {
     try {
       await this.mg.messages.create(domain, data);
     } catch (error) {
-      console.error(error);
+      console.error('Unable to send order confirmation', error);
     }
   }
 
@@ -144,11 +144,10 @@ export class MailService {
       html,
     };
 
-    // Send the email using the Mailgun API and console.log the response or catch the error
     try {
       await this.mg.messages.create(domain, data);
     } catch (error) {
-      console.error(error);
+      console.error('Unable to send account welcome email', error);
     }
   }
 }

@@ -11,10 +11,13 @@ import { UserModule } from './modules/user.module';
 import { MailModule } from './modules/mail.module';
 import { AuthModule } from './auth/auth.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { validateEnvironment } from './config/env.validation';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({ cache: true, validate: validateEnvironment }),
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 10 }]),
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DATABASE_URL,

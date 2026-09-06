@@ -32,9 +32,11 @@ async function bootstrap() {
 
   app.enableCors(corsOptions);
 
-  await app.listen(3000);
+  const port = Number(process.env.PORT);
+  await app.listen(port);
+  return port;
 }
 
-void bootstrap().then(() =>
-  console.log('Server running on http://localhost:3000'),
+void bootstrap().then((port) =>
+  console.log(`Server running on http://localhost:${port}`),
 );

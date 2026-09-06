@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { Test } from '@nestjs/testing';
+import { ThrottlerModule } from '@nestjs/throttler';
 import * as bcrypt from 'bcrypt';
 import * as OTPAuth from 'otpauth';
 import * as request from 'supertest';
@@ -165,7 +166,10 @@ const createHarness = async () => {
   } as unknown as UserService;
   const authService = new AuthService(usersService, jwtService);
   const moduleRef = await Test.createTestingModule({
-    imports: [PassportModule],
+    imports: [
+      PassportModule,
+      ThrottlerModule.forRoot([{ ttl: 60_000, limit: 10 }]),
+    ],
     controllers: [
       AuthController,
       MfaController,
