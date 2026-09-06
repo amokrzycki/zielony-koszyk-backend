@@ -1,4 +1,5 @@
 import {
+  IsIn,
   IsNotEmpty,
   IsObject,
   IsString,
@@ -9,6 +10,7 @@ import type {
   AuthenticationResponseJSON,
   RegistrationResponseJSON,
 } from '@simplewebauthn/server';
+import { MfaMethod } from '../enums/MfaMethod';
 
 export class MfaCodeDto {
   @IsString()
@@ -48,4 +50,13 @@ export class WebAuthnRegistrationVerifyDto {
 export class WebAuthnAuthenticationVerifyDto {
   @IsObject()
   response: AuthenticationResponseJSON;
+}
+
+export class UpdateMfaMethodDto {
+  @IsIn([MfaMethod.NONE, MfaMethod.EMAIL_OTP])
+  method: MfaMethod.NONE | MfaMethod.EMAIL_OTP;
+
+  @IsString()
+  @IsNotEmpty()
+  password: string;
 }

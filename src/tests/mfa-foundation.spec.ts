@@ -532,6 +532,13 @@ describe('MFA token isolation', () => {
       expect(refreshed.headers['set-cookie']).toHaveLength(2);
 
       account.mfa_method = MfaMethod.EMAIL_OTP;
+      const staleRefreshed = await request(server)
+        .post('/auth/refresh')
+        .set('Cookie', refreshCookie ?? '')
+        .expect(201);
+      expect(
+        jwtService.decode(staleRefreshed.body.access_token as string),
+      ).not.toHaveProperty('method');
       const pending = await request(server)
         .post('/auth/login')
         .set('Cookie', fullCookies)
@@ -584,6 +591,9 @@ describe('MFA token isolation', () => {
         user: { user_id: account.user_id },
       });
       expect(verified.body).toHaveProperty('access_token');
+      expect(
+        jwtService.decode(verified.body.access_token as string),
+      ).toMatchObject({ method: MfaMethod.EMAIL_OTP });
       expect(verified.headers['set-cookie']).toHaveLength(2);
       expect(challenges.size).toBe(0);
       await request(server)

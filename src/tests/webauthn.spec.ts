@@ -189,6 +189,18 @@ const createHarness = () => {
     ),
   } as unknown as UserService;
   const authService = new AuthService(usersService, jwtService);
+  const accessToken = () =>
+    jwtService.sign(
+      {
+        sub: account.user_id,
+        email: account.email,
+        role: account.role,
+        ...(account.mfa_method === MfaMethod.NONE
+          ? {}
+          : { method: account.mfa_method }),
+      },
+      { algorithm: 'HS256', expiresIn: '15m' },
+    );
 
   return {
     account,
@@ -202,6 +214,7 @@ const createHarness = () => {
     mfaService,
     authService,
     configService,
+    accessToken,
   };
 };
 
@@ -252,19 +265,13 @@ describe('WebAuthn registration', () => {
   const startRegistration = () =>
     request(server)
       .post('/users/me/mfa/webauthn/registration')
-      .set(
-        'Authorization',
-        `Bearer ${harness.jwtService.sign({ sub: harness.account.user_id, email: harness.account.email, role: harness.account.role }, { algorithm: 'HS256', expiresIn: '15m' })}`,
-      )
+      .set('Authorization', `Bearer ${harness.accessToken()}`)
       .send({ password: PASSWORD });
 
   it('rejects a wrong password without creating a challenge', async () => {
     await request(server)
       .post('/users/me/mfa/webauthn/registration')
-      .set(
-        'Authorization',
-        `Bearer ${harness.jwtService.sign({ sub: harness.account.user_id, email: harness.account.email, role: harness.account.role }, { algorithm: 'HS256', expiresIn: '15m' })}`,
-      )
+      .set('Authorization', `Bearer ${harness.accessToken()}`)
       .send({ password: 'wrong-password' })
       .expect(403);
 
@@ -315,10 +322,7 @@ describe('WebAuthn registration', () => {
     });
     await request(server)
       .post('/users/me/mfa/webauthn/registration/verify')
-      .set(
-        'Authorization',
-        `Bearer ${harness.jwtService.sign({ sub: harness.account.user_id, email: harness.account.email, role: harness.account.role }, { algorithm: 'HS256', expiresIn: '15m' })}`,
-      )
+      .set('Authorization', `Bearer ${harness.accessToken()}`)
       .send({
         challenge_id: body.challenge_id,
         response: { id: 'new-credential' },
@@ -338,10 +342,7 @@ describe('WebAuthn registration', () => {
     });
     await request(server)
       .post('/users/me/mfa/webauthn/registration/verify')
-      .set(
-        'Authorization',
-        `Bearer ${harness.jwtService.sign({ sub: harness.account.user_id, email: harness.account.email, role: harness.account.role }, { algorithm: 'HS256', expiresIn: '15m' })}`,
-      )
+      .set('Authorization', `Bearer ${harness.accessToken()}`)
       .send({
         challenge_id: body.challenge_id,
         response: { id: 'new-credential' },
@@ -373,10 +374,7 @@ describe('WebAuthn registration', () => {
 
     await request(server)
       .post('/users/me/mfa/webauthn/registration/verify')
-      .set(
-        'Authorization',
-        `Bearer ${harness.jwtService.sign({ sub: harness.account.user_id, email: harness.account.email, role: harness.account.role }, { algorithm: 'HS256', expiresIn: '15m' })}`,
-      )
+      .set('Authorization', `Bearer ${harness.accessToken()}`)
       .send({
         challenge_id: body.challenge_id,
         response: { id: 'new-credential' },

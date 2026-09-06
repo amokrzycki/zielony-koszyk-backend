@@ -45,6 +45,7 @@ import {
 import { User } from '../entities/user.entity';
 import { WebAuthnCredential } from '../entities/webauthn-credential.entity';
 import { MfaMethod } from '../enums/MfaMethod';
+import type { ActiveMfaMethod } from '../enums/MfaMethod';
 import { MailService } from '../services/mail.service';
 import { MfaTokenPayload } from '../types/JWTPayload';
 import {
@@ -198,14 +199,60 @@ export class MfaService {
     };
   }
 
-  async startTotpEnrollment(user_id: string, password: string) {
+  async updateMethod(
+    user_id: string,
+    password: string,
+    method: MfaMethod.NONE | MfaMethod.EMAIL_OTP,
+    verifiedMethod?: ActiveMfaMethod,
+  ) {
+    return this.challenges.manager.transaction(async (manager) => {
+      await manager.getRepository(MfaChallenge).delete({ user_id });
+      const users = manager.getRepository(User);
+      const account = await users.findOne({
+        where: { user_id },
+        select: {
+          user_id: true,
+          password: true,
+          mfa_method: true,
+          totp_secret_encrypted: true,
+          totp_last_used_step: true,
+        },
+        loadEagerRelations: false,
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!account || !(await bcrypt.compare(password, account.password))) {
+        throw new ForbiddenException('Invalid credentials');
+      }
+      this.assertCurrentMfaVerified(account.mfa_method, verifiedMethod);
+
+      account.mfa_method = method;
+      account.totp_secret_encrypted = null;
+      account.totp_last_used_step = null;
+      await users.save(account);
+      await manager.getRepository(WebAuthnCredential).delete({ user_id });
+
+      return { mfa_method: method };
+    });
+  }
+
+  async startTotpEnrollment(
+    user_id: string,
+    password: string,
+    verifiedMethod?: ActiveMfaMethod,
+  ) {
     const account = await this.users.findOne({
       where: { user_id },
-      select: { user_id: true, email: true, password: true },
+      select: {
+        user_id: true,
+        email: true,
+        password: true,
+        mfa_method: true,
+      },
     });
     if (!account || !(await bcrypt.compare(password, account.password))) {
       throw new ForbiddenException('Invalid credentials');
     }
+    this.assertCurrentMfaVerified(account.mfa_method, verifiedMethod);
 
     const secret = new OTPAuth.Secret({ size: MFA_TOTP_SECRET_BYTES });
     const totp = this.totp(secret.base32, account.email);
@@ -234,6 +281,7 @@ export class MfaService {
     user_id: string,
     challenge_id: string,
     code: string,
+    verifiedMethod?: ActiveMfaMethod,
   ) {
     try {
       await this.consumeChallenge(
@@ -249,11 +297,12 @@ export class MfaService {
           const users = manager.getRepository(User);
           const account = await users.findOne({
             where: { user_id },
-            select: { user_id: true, email: true },
+            select: { user_id: true, email: true, mfa_method: true },
             loadEagerRelations: false,
             lock: { mode: 'pessimistic_write' },
           });
           if (!account) return false;
+          this.assertCurrentMfaVerified(account.mfa_method, verifiedMethod);
 
           const secret = decryptTotpSecret(
             challenge.totp_secret_encrypted,
@@ -359,14 +408,24 @@ export class MfaService {
     );
   }
 
-  async startWebAuthnRegistration(user_id: string, password: string) {
+  async startWebAuthnRegistration(
+    user_id: string,
+    password: string,
+    verifiedMethod?: ActiveMfaMethod,
+  ) {
     const account = await this.users.findOne({
       where: { user_id },
-      select: { user_id: true, email: true, password: true },
+      select: {
+        user_id: true,
+        email: true,
+        password: true,
+        mfa_method: true,
+      },
     });
     if (!account || !(await bcrypt.compare(password, account.password))) {
       throw new ForbiddenException('Invalid credentials');
     }
+    this.assertCurrentMfaVerified(account.mfa_method, verifiedMethod);
 
     const existingCredential = await this.loadCredential(user_id);
     const options = await this.webAuthnService.generateRegistrationOptions(
@@ -388,6 +447,7 @@ export class MfaService {
     user_id: string,
     challenge_id: string,
     response: RegistrationResponseJSON,
+    verifiedMethod?: ActiveMfaMethod,
   ) {
     try {
       await this.consumeChallenge(
@@ -420,6 +480,7 @@ export class MfaService {
             lock: { mode: 'pessimistic_write' },
           });
           if (!account) return false;
+          this.assertCurrentMfaVerified(account.mfa_method, verifiedMethod);
 
           const { credential } = verification.registrationInfo;
           const credentials = manager.getRepository(WebAuthnCredential);
@@ -495,6 +556,15 @@ export class MfaService {
 
   private async loadCredential(user_id: string) {
     return this.credentials.findOne({ where: { user_id } });
+  }
+
+  private assertCurrentMfaVerified(
+    currentMethod: MfaMethod,
+    verifiedMethod?: ActiveMfaMethod,
+  ) {
+    if (currentMethod !== MfaMethod.NONE && currentMethod !== verifiedMethod) {
+      throw new ForbiddenException('Current MFA verification required');
+    }
   }
 
   private async requireCredential(user_id: string) {

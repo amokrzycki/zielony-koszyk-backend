@@ -16,6 +16,7 @@ import {
 } from '../auth/jwt.strategy';
 import {
   MfaController,
+  MfaSettingsController,
   TotpEnrollmentController,
 } from '../auth/mfa.controller';
 import { MfaService } from '../auth/mfa.service';
@@ -30,7 +31,10 @@ import {
   MFA_TOTP_ISSUER,
   MFA_TOTP_PERIOD_SECONDS,
 } from '../constants/constants';
-import { MfaChallenge } from '../entities/mfa-challenge.entity';
+import {
+  MfaChallenge,
+  MfaChallengePurpose,
+} from '../entities/mfa-challenge.entity';
 import { User } from '../entities/user.entity';
 import { WebAuthnCredential } from '../entities/webauthn-credential.entity';
 import { MfaMethod } from '../enums/MfaMethod';
@@ -133,7 +137,7 @@ const createHarness = async () => {
     MFA_OTP_HMAC_KEY: Buffer.alloc(32, 3).toString('base64'),
     MFA_TOTP_ENCRYPTION_KEY: ENCRYPTION_KEY.toString('base64'),
   });
-  const sendMfaOtp = jest.fn();
+  const sendMfaOtp = jest.fn<Promise<void>, [string, string]>();
   const mailService = { sendMfaOtp } as unknown as MailService;
   const mfaService = new MfaService(
     challengeRepository as unknown as Repository<MfaChallenge>,
@@ -162,7 +166,12 @@ const createHarness = async () => {
   const authService = new AuthService(usersService, jwtService);
   const moduleRef = await Test.createTestingModule({
     imports: [PassportModule],
-    controllers: [AuthController, MfaController, TotpEnrollmentController],
+    controllers: [
+      AuthController,
+      MfaController,
+      MfaSettingsController,
+      TotpEnrollmentController,
+    ],
     providers: [
       JwtStrategy,
       RefreshTokenStrategy,
@@ -175,6 +184,16 @@ const createHarness = async () => {
   const app: INestApplication = moduleRef.createNestApplication();
   app.useGlobalPipes(new ValidationPipe());
   await app.init();
+  const accessTokenFor = (method: MfaMethod) =>
+    jwtService.sign(
+      {
+        sub: account.user_id,
+        email: account.email,
+        role: account.role,
+        ...(method === MfaMethod.NONE ? {} : { method }),
+      },
+      { algorithm: 'HS256', expiresIn: '15m' },
+    );
 
   return {
     account,
@@ -184,14 +203,10 @@ const createHarness = async () => {
     credentialUserIds,
     jwtService,
     sendMfaOtp,
-    accessToken: jwtService.sign(
-      {
-        sub: account.user_id,
-        email: account.email,
-        role: account.role,
-      },
-      { algorithm: 'HS256', expiresIn: '15m' },
-    ),
+    challengeRepository,
+    userRepository,
+    accessTokenFor,
+    accessToken: accessTokenFor(account.mfa_method),
   };
 };
 
@@ -375,13 +390,14 @@ describe('TOTP end-to-end', () => {
 
   it('rejects an email challenge after TOTP activation', async () => {
     const pending = await login(harness).expect(201);
-    const code = harness.sendMfaOtp.mock.calls[0][1] as string;
+    const pendingBody = pending.body as { mfa_token: string };
+    const code = harness.sendMfaOtp.mock.calls[0][1];
 
     await enroll(harness);
 
     await request(harness.server)
       .post('/auth/mfa/email-otp/verify')
-      .set('Authorization', `Bearer ${pending.body.mfa_token as string}`)
+      .set('Authorization', `Bearer ${pendingBody.mfa_token}`)
       .send({ code })
       .expect(401);
   });
@@ -413,15 +429,18 @@ describe('TOTP end-to-end', () => {
       .set('Authorization', `Bearer ${pendingBody.mfa_token}`)
       .send({ code: currentCode })
       .expect(201);
-    expect(completed.body).toMatchObject({
+    const completedBody = completed.body as {
+      user: { user_id: string; mfa_method: MfaMethod };
+    };
+    expect(completedBody).toMatchObject({
       mfa_required: false,
       user: {
         user_id: harness.account.user_id,
         mfa_method: MfaMethod.TOTP,
       },
     });
-    expect(completed.body.user).not.toHaveProperty('totp_secret_encrypted');
-    expect(completed.body.user).not.toHaveProperty('totp_last_used_step');
+    expect(completedBody.user).not.toHaveProperty('totp_secret_encrypted');
+    expect(completedBody.user).not.toHaveProperty('totp_last_used_step');
     expect(completed.headers['set-cookie']).toHaveLength(2);
 
     const replay = await login(harness).expect(201);
@@ -482,5 +501,103 @@ describe('TOTP end-to-end', () => {
       .expect(401);
     expect([...harness.challenges.values()][0].attempt_count).toBe(5);
     await login(harness).expect(429);
+  });
+});
+
+describe('MFA method management', () => {
+  let harness: Harness;
+
+  beforeEach(async () => {
+    harness = await createHarness();
+  });
+
+  afterEach(async () => {
+    await harness.app.close();
+  });
+
+  const updateMethod = (
+    method: MfaMethod,
+    password: string,
+    token = harness.accessToken,
+  ) =>
+    request(harness.server)
+      .put('/users/me/mfa')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ method, password });
+
+  it('requires a full session and current password', async () => {
+    await request(harness.server)
+      .put('/users/me/mfa')
+      .send({ method: MfaMethod.NONE, password: PASSWORD })
+      .expect(401);
+
+    const pending = await login(harness).expect(201);
+    const pendingBody = pending.body as { mfa_token: string };
+    await updateMethod(MfaMethod.NONE, PASSWORD, pendingBody.mfa_token).expect(
+      401,
+    );
+    await updateMethod(
+      MfaMethod.NONE,
+      PASSWORD,
+      harness.accessTokenFor(MfaMethod.NONE),
+    ).expect(403);
+    await updateMethod(MfaMethod.NONE, 'wrong-password').expect(403);
+    await updateMethod(MfaMethod.TOTP, PASSWORD).expect(400);
+
+    expect(harness.account.mfa_method).toBe(MfaMethod.EMAIL_OTP);
+    expect(harness.credentialUserIds.has(harness.account.user_id)).toBe(true);
+  });
+
+  it('enables email OTP and disables MFA with transactional cleanup', async () => {
+    const pendingChallenge = {
+      challenge_id: '4df5bb30-a038-4ff0-a76e-0b6c1ef92fd8',
+      user_id: harness.account.user_id,
+      method: MfaMethod.TOTP,
+      purpose: MfaChallengePurpose.ENROLLMENT,
+      otp_digest: null,
+      webauthn_challenge: null,
+      totp_secret_encrypted: 'pending-secret',
+      attempt_count: 0,
+      expires_at: new Date(Date.now() + 60_000),
+    } as MfaChallenge;
+    harness.account.mfa_method = MfaMethod.TOTP;
+    harness.account.totp_secret_encrypted = 'active-secret';
+    harness.account.totp_last_used_step = 7;
+    harness.challenges.set(pendingChallenge.challenge_id, pendingChallenge);
+
+    await updateMethod(
+      MfaMethod.EMAIL_OTP,
+      PASSWORD,
+      harness.accessTokenFor(MfaMethod.TOTP),
+    ).expect(200, { mfa_method: MfaMethod.EMAIL_OTP });
+
+    expect(harness.account).toMatchObject({
+      mfa_method: MfaMethod.EMAIL_OTP,
+      totp_secret_encrypted: null,
+      totp_last_used_step: null,
+    });
+    expect(harness.credentialUserIds.size).toBe(0);
+    expect(harness.challenges.size).toBe(0);
+    expect(
+      harness.challengeRepository.delete.mock.invocationCallOrder[0],
+    ).toBeLessThan(harness.userRepository.findOne.mock.invocationCallOrder[0]);
+
+    harness.account.mfa_method = MfaMethod.WEBAUTHN;
+    harness.account.totp_secret_encrypted = 'stale-secret';
+    harness.account.totp_last_used_step = 8;
+    harness.credentialUserIds.add(harness.account.user_id);
+
+    await updateMethod(
+      MfaMethod.NONE,
+      PASSWORD,
+      harness.accessTokenFor(MfaMethod.WEBAUTHN),
+    ).expect(200, { mfa_method: MfaMethod.NONE });
+
+    expect(harness.account).toMatchObject({
+      mfa_method: MfaMethod.NONE,
+      totp_secret_encrypted: null,
+      totp_last_used_step: null,
+    });
+    expect(harness.credentialUserIds.size).toBe(0);
   });
 });

@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Post, Put, Res, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { GetUser } from '../decorators/get-user.decorator';
@@ -7,11 +7,13 @@ import {
   TotpCodeDto,
   TotpEnrollmentDto,
   TotpEnrollmentVerifyDto,
+  UpdateMfaMethodDto,
   WebAuthnAuthenticationVerifyDto,
   WebAuthnRegistrationDto,
   WebAuthnRegistrationVerifyDto,
 } from '../dto/mfa.dto';
 import { MfaMethod } from '../enums/MfaMethod';
+import type { ActiveMfaMethod } from '../enums/MfaMethod';
 import { AuthService } from './auth.service';
 import { sendSession } from './auth.controller';
 import { JwtAuthGuard, MfaJwtAuthGuard } from './jwt-auth.guard';
@@ -21,6 +23,11 @@ type PendingMfaUser = {
   user_id: string;
   challenge_id: string;
   rememberMe: boolean;
+  method: ActiveMfaMethod;
+};
+
+type AuthenticatedUser = Pick<PendingMfaUser, 'user_id'> & {
+  method?: ActiveMfaMethod;
 };
 
 @Controller('auth/mfa')
@@ -46,6 +53,7 @@ export class MfaController {
     const session = await this.authService.completeMfa(
       user.user_id,
       user.rememberMe,
+      user.method,
     );
     sendSession(res, session, user.rememberMe);
   }
@@ -65,6 +73,7 @@ export class MfaController {
     const session = await this.authService.completeMfa(
       user.user_id,
       user.rememberMe,
+      user.method,
     );
     sendSession(res, session, user.rememberMe);
   }
@@ -84,8 +93,29 @@ export class MfaController {
     const session = await this.authService.completeMfa(
       user.user_id,
       user.rememberMe,
+      user.method,
     );
     sendSession(res, session, user.rememberMe);
+  }
+}
+
+@Controller('users/me/mfa')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
+export class MfaSettingsController {
+  constructor(private mfaService: MfaService) {}
+
+  @Put()
+  updateMethod(
+    @GetUser() user: AuthenticatedUser,
+    @Body() body: UpdateMfaMethodDto,
+  ) {
+    return this.mfaService.updateMethod(
+      user.user_id,
+      body.password,
+      body.method,
+      user.method,
+    );
   }
 }
 
@@ -97,21 +127,26 @@ export class TotpEnrollmentController {
 
   @Post('enrollment')
   startEnrollment(
-    @GetUser() user: Pick<PendingMfaUser, 'user_id'>,
+    @GetUser() user: AuthenticatedUser,
     @Body() body: TotpEnrollmentDto,
   ) {
-    return this.mfaService.startTotpEnrollment(user.user_id, body.password);
+    return this.mfaService.startTotpEnrollment(
+      user.user_id,
+      body.password,
+      user.method,
+    );
   }
 
   @Post('enrollment/verify')
   async verifyEnrollment(
-    @GetUser() user: Pick<PendingMfaUser, 'user_id'>,
+    @GetUser() user: AuthenticatedUser,
     @Body() body: TotpEnrollmentVerifyDto,
   ) {
     await this.mfaService.verifyTotpEnrollment(
       user.user_id,
       body.challenge_id,
       body.code,
+      user.method,
     );
     return { mfa_method: MfaMethod.TOTP };
   }
@@ -125,24 +160,26 @@ export class WebAuthnEnrollmentController {
 
   @Post('registration')
   startRegistration(
-    @GetUser() user: Pick<PendingMfaUser, 'user_id'>,
+    @GetUser() user: AuthenticatedUser,
     @Body() body: WebAuthnRegistrationDto,
   ) {
     return this.mfaService.startWebAuthnRegistration(
       user.user_id,
       body.password,
+      user.method,
     );
   }
 
   @Post('registration/verify')
   async verifyRegistration(
-    @GetUser() user: Pick<PendingMfaUser, 'user_id'>,
+    @GetUser() user: AuthenticatedUser,
     @Body() body: WebAuthnRegistrationVerifyDto,
   ) {
     await this.mfaService.verifyWebAuthnRegistration(
       user.user_id,
       body.challenge_id,
       body.response,
+      user.method,
     );
     return { mfa_method: MfaMethod.WEBAUTHN };
   }
