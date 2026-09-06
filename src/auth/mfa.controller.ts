@@ -7,6 +7,9 @@ import {
   TotpCodeDto,
   TotpEnrollmentDto,
   TotpEnrollmentVerifyDto,
+  WebAuthnAuthenticationVerifyDto,
+  WebAuthnRegistrationDto,
+  WebAuthnRegistrationVerifyDto,
 } from '../dto/mfa.dto';
 import { MfaMethod } from '../enums/MfaMethod';
 import { AuthService } from './auth.service';
@@ -65,6 +68,25 @@ export class MfaController {
     );
     sendSession(res, session, user.rememberMe);
   }
+
+  @Post('webauthn/verify')
+  @UseGuards(MfaJwtAuthGuard)
+  async verifyWebAuthn(
+    @GetUser() user: PendingMfaUser,
+    @Body() body: WebAuthnAuthenticationVerifyDto,
+    @Res() res: Response,
+  ) {
+    await this.mfaService.verifyWebAuthnAuthentication(
+      user.user_id,
+      user.challenge_id,
+      body.response,
+    );
+    const session = await this.authService.completeMfa(
+      user.user_id,
+      user.rememberMe,
+    );
+    sendSession(res, session, user.rememberMe);
+  }
 }
 
 @Controller('users/me/mfa/totp')
@@ -92,5 +114,36 @@ export class TotpEnrollmentController {
       body.code,
     );
     return { mfa_method: MfaMethod.TOTP };
+  }
+}
+
+@Controller('users/me/mfa/webauthn')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
+export class WebAuthnEnrollmentController {
+  constructor(private mfaService: MfaService) {}
+
+  @Post('registration')
+  startRegistration(
+    @GetUser() user: Pick<PendingMfaUser, 'user_id'>,
+    @Body() body: WebAuthnRegistrationDto,
+  ) {
+    return this.mfaService.startWebAuthnRegistration(
+      user.user_id,
+      body.password,
+    );
+  }
+
+  @Post('registration/verify')
+  async verifyRegistration(
+    @GetUser() user: Pick<PendingMfaUser, 'user_id'>,
+    @Body() body: WebAuthnRegistrationVerifyDto,
+  ) {
+    await this.mfaService.verifyWebAuthnRegistration(
+      user.user_id,
+      body.challenge_id,
+      body.response,
+    );
+    return { mfa_method: MfaMethod.WEBAUTHN };
   }
 }

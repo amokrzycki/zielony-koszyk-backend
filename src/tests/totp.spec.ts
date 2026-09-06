@@ -23,6 +23,7 @@ import {
   decryptTotpSecret,
   encryptTotpSecret,
 } from '../auth/totp-secret.crypto';
+import type { WebAuthnService } from '../auth/webauthn.service';
 import {
   MFA_TOTP_ALGORITHM,
   MFA_TOTP_DIGITS,
@@ -104,6 +105,7 @@ const createHarness = async () => {
     }),
   };
   const credentialRepository = {
+    findOne: jest.fn(() => null),
     delete: jest.fn(({ user_id }: Pick<WebAuthnCredential, 'user_id'>) => {
       credentialUserIds.delete(user_id);
     }),
@@ -139,6 +141,8 @@ const createHarness = async () => {
     jwtService,
     configService,
     mailService,
+    credentialRepository as unknown as Repository<WebAuthnCredential>,
+    {} as unknown as WebAuthnService,
   );
   const publicAccount = () => {
     const user: Partial<User> = { ...account };

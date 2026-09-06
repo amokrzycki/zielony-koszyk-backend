@@ -17,7 +17,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { MfaChallenge } from '../entities/mfa-challenge.entity';
 import { WebAuthnCredential } from '../entities/webauthn-credential.entity';
 import { MfaService } from './mfa.service';
-import { MfaController, TotpEnrollmentController } from './mfa.controller';
+import { WebAuthnService } from './webauthn.service';
+import {
+  MfaController,
+  TotpEnrollmentController,
+  WebAuthnEnrollmentController,
+} from './mfa.controller';
 import { MailModule } from '../modules/mail.module';
 import { User } from '../entities/user.entity';
 
@@ -43,11 +48,17 @@ import { User } from '../entities/user.entity';
     ConfigService,
     AuthService,
     MfaService,
+    WebAuthnService,
     JwtStrategy,
     RefreshTokenStrategy,
     MfaJwtStrategy,
   ],
-  controllers: [AuthController, MfaController, TotpEnrollmentController],
+  controllers: [
+    AuthController,
+    MfaController,
+    TotpEnrollmentController,
+    WebAuthnEnrollmentController,
+  ],
   exports: [AuthService, MfaService],
 })
 export class AuthModule {}

@@ -21,6 +21,8 @@ import {
 } from '../auth/jwt.strategy';
 import { MfaService } from '../auth/mfa.service';
 import { MfaController } from '../auth/mfa.controller';
+import type { WebAuthnService } from '../auth/webauthn.service';
+import type { WebAuthnCredential } from '../entities/webauthn-credential.entity';
 import {
   MFA_EMAIL_OTP_RESEND_COOLDOWN_MS,
   MFA_LOGIN_CHALLENGE_TTL_MS,
@@ -209,6 +211,10 @@ const mfaServiceFixture = (
       jwtService,
       configService,
       mailService,
+      {
+        findOne: jest.fn().mockResolvedValue(null),
+      } as unknown as Repository<WebAuthnCredential>,
+      {} as unknown as WebAuthnService,
     ),
   };
 };
@@ -356,7 +362,7 @@ describe('Email OTP', () => {
     expect(fixture.sendMfaOtp).toHaveBeenCalledTimes(1);
     expect(fixture.challenges.size).toBe(1);
     expect(settled).toBe(false);
-    acceptMail!();
+    acceptMail();
     await pending;
 
     const delivered = [...fixture.challenges.values()][0];
