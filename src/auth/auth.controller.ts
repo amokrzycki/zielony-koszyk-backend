@@ -19,6 +19,7 @@ import {
 import { MfaService } from './mfa.service';
 import { MfaMethod } from '../enums/MfaMethod';
 import { User } from '../entities/user.entity';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 
 type Session = ReturnType<AuthService['login']>;
 
@@ -48,6 +49,8 @@ export class AuthController {
   ) {}
 
   @Post('auth/login')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @UseGuards(ThrottlerGuard)
   async login(@Body() loginDto: LoginDto, @Res() res: Response) {
     const user = await this.authService.validateUser(
       loginDto.email,

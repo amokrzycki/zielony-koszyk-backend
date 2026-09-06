@@ -1,39 +1,32 @@
-# Zielony Koszyk - sklep internetowy
+# Zielony Koszyk — backend
 
-### Praca inżynierska na kierunku Informatyka na Wydziale Informatyki Wyższej Szkoły Informatyki i Zarządzania w Rzeszowie.
+Backend sklepu w NestJS 11 z PostgreSQL oraz uwierzytelnianiem hasłem i MFA
+(e-mail OTP, TOTP, WebAuthn).
 
-Witamy w **Zielony Koszyk**! To aplikacja umożliwiająca zakup świeżych warzyw online bez wychodzenia z domu.
+## Uruchomienie
 
-## Funkcjonalności
+Wymagany jest Node.js 26 oraz PostgreSQL dostępny przez `DATABASE_URL`.
 
-- **Przegląd produktów**: Przeglądaj szeroki asortyment świeżych warzyw.
-- **Koszyk**: Dodawaj produkty do koszyka i zarządzaj nimi przed zakupem.
-- **Bezpieczne płatności**: Dokonuj płatności online za pomocą zaufanych metod.
-- **Rejestracja i logowanie**: Twórz konto, aby śledzić swoje zamówienia i historię zakupów.
-- **Powiadomienia**: Otrzymuj aktualizacje o nowych produktach i promocjach.
+```bash
+cp .env.example .env
+# Uzupełnij wszystkie wartości; dwa klucze MFA wygeneruj osobno:
+openssl rand -base64 32
+npm ci
+npm run migration:run
+npm run build
+npm run start:prod
+```
 
-## Technologie
+Aplikacja waliduje konfigurację przy starcie. Pliki `.env*` poza
+`.env.example` są wykluczone z kontekstu obrazu Docker; kontenerowi należy
+przekazać konfigurację w runtime przez `--env-file` lub konfigurację hosta.
 
-- **Frontend**: React + TypeScript
-- **Backend**: Next.js + TypeScript
-- **Baza danych**: MySQL
+Końcowy zestaw testów MFA, niewymagający połączenia z zewnętrzną bazą ani
+Mailgunem:
 
-## Wymagania
+```bash
+npm run test:mfa
+```
 
-- **Node.js**: <= v18
-- **npm**: <= 9.0.0
-- **Docker**
-- **Docker Compose**
-
-## Instalacja
-
-1. Sklonuj repozytorium: `git@github.com:amokrzycki/zielony-koszyk-frontend.git`
-2. Przejdź do katalogu: `cd zielony-koszyk-frontend`
-3. Zainstaluj zależności: `npm install`
-4. Uruchom aplikację: `npm run start`
-5. Sklonuj repozytorium z backendem: `git@github.com:amokrzycki/zielony-koszyk-backend.git`
-6. Przejdź do katalogu: `cd zielony-koszyk-backend`
-7. Zainstaluj zależności: `npm install`
-8. Uruchom i zbuduj obraz dockera: `sudo docker-compose up --build`
-9. Backend będzie dostępny pod adresem: `http://localhost:3000`
-10. Gotowe!
+Powtarzalny profil badawczy, scenariusze i granice pomiarów opisuje
+[MFA_RESEARCH_RUNBOOK.md](MFA_RESEARCH_RUNBOOK.md).

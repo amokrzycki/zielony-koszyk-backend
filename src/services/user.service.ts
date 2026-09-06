@@ -111,7 +111,7 @@ export class UserService {
         generatedPassword,
       );
     } catch (error) {
-      console.error('Error sending email with password:', error);
+      console.error('Unable to send account welcome email', error);
     }
 
     return this.usersRepository.findOne({

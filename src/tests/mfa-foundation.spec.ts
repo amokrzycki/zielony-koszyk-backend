@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { Test } from '@nestjs/testing';
+import { ThrottlerModule } from '@nestjs/throttler';
 import * as bcrypt from 'bcrypt';
 import type { Response } from 'express';
 import * as request from 'supertest';
@@ -477,7 +478,10 @@ describe('MFA token isolation', () => {
     const authService = new AuthService(usersService, jwtService);
     const configService = new ConfigService({ JWT_SECRET: 'test-secret' });
     const moduleRef = await Test.createTestingModule({
-      imports: [PassportModule],
+      imports: [
+        PassportModule,
+        ThrottlerModule.forRoot([{ ttl: 60_000, limit: 10 }]),
+      ],
       controllers: [AuthController, MfaController, GuardProbeController],
       providers: [
         JwtStrategy,
