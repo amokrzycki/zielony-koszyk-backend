@@ -20,6 +20,7 @@ import { MfaService } from './mfa.service';
 import { WebAuthnService } from './webauthn.service';
 import {
   MfaController,
+  MfaSettingsController,
   TotpEnrollmentController,
   WebAuthnEnrollmentController,
 } from './mfa.controller';
@@ -56,6 +57,7 @@ import { User } from '../entities/user.entity';
   controllers: [
     AuthController,
     MfaController,
+    MfaSettingsController,
     TotpEnrollmentController,
     WebAuthnEnrollmentController,
   ],

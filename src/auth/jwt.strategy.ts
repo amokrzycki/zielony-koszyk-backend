@@ -4,7 +4,7 @@ import { Strategy, ExtractJwt } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
 import { JWTPayload } from '../types/JWTPayload';
-import { MfaMethod } from '../enums/MfaMethod';
+import { ACTIVE_MFA_METHODS, MfaMethod } from '../enums/MfaMethod';
 import { MfaService } from './mfa.service';
 
 const tokenFromCookie = (request: Request, name: string) =>
@@ -35,11 +35,21 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   validate(payload: JWTPayload) {
-    if (payload.type || !('email' in payload) || !('role' in payload)) {
+    if (
+      payload.type ||
+      !('email' in payload) ||
+      !('role' in payload) ||
+      (payload.method && !ACTIVE_MFA_METHODS.includes(payload.method))
+    ) {
       return false;
     }
 
-    return { user_id: payload.sub, email: payload.email, role: payload.role };
+    return {
+      user_id: payload.sub,
+      email: payload.email,
+      role: payload.role,
+      method: payload.method,
+    };
   }
 }
 
@@ -58,13 +68,19 @@ export class RefreshTokenStrategy extends PassportStrategy(
   }
 
   validate(payload: JWTPayload) {
-    if (payload.type !== 'refresh') return false;
+    if (
+      payload.type !== 'refresh' ||
+      (payload.method && !ACTIVE_MFA_METHODS.includes(payload.method))
+    ) {
+      return false;
+    }
 
     return {
       user_id: payload.sub,
       email: payload.email,
       role: payload.role,
       rememberMe: payload.rememberMe,
+      method: payload.method,
     };
   }
 }

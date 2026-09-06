@@ -1,9 +1,10 @@
-import { MfaMethod } from '../enums/MfaMethod';
+import { ActiveMfaMethod, MfaMethod } from '../enums/MfaMethod';
 
 export type AccessTokenPayload = {
   sub: string;
   email: string;
   role: string;
+  method?: ActiveMfaMethod;
   type?: never;
 };
 
@@ -13,6 +14,7 @@ export type RefreshTokenPayload = {
   role: string;
   type: 'refresh';
   rememberMe: boolean;
+  method?: ActiveMfaMethod;
 };
 
 export type MfaTokenPayload = {
