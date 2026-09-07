@@ -7,12 +7,12 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"research/**/*.ts\"",
     "start": "nest start -b swc --type-check",
     "start:dev": "nest start -b swc --type-check --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/src/main",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "lint": "eslint \"{src,research,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
@@ -24,7 +24,15 @@
     "migration:generate": "npm run typeorm -- migration:generate src/migrations/migration -d src/data-source.ts",
     "migration:run": "npm run typeorm -- migration:run -d src/data-source.ts",
     "migration:revert": "npm run typeorm -- migration:revert -d src/data-source.ts",
-    "migration:show": "npm run typeorm -- migration:show -d src/data-source.ts"
+    "migration:show": "npm run typeorm -- migration:show -d src/data-source.ts",
+    "research:dataset:provision": "node --env-file-if-exists=.env -r ts-node/register -r tsconfig-paths/register research/scripts/provision-dataset.ts",
+    "research:dataset:seed": "node --env-file-if-exists=.env -r ts-node/register -r tsconfig-paths/register research/scripts/seed-research-users.ts",
+    "research:dataset:validate": "node --env-file-if-exists=.env -r ts-node/register -r tsconfig-paths/register research/scripts/validate-dataset.ts",
+    "research:dataset:reset": "node --env-file-if-exists=.env -r ts-node/register -r tsconfig-paths/register research/scripts/reset-dataset.ts",
+    "research:dataset:snapshot": "node --env-file-if-exists=.env -r ts-node/register -r tsconfig-paths/register research/scripts/database-snapshot.ts",
+    "research:dataset:restore": "node --env-file-if-exists=.env -r ts-node/register -r tsconfig-paths/register research/scripts/database-snapshot.ts --restore",
+    "research:webauthn:import": "node --env-file-if-exists=.env -r ts-node/register -r tsconfig-paths/register research/scripts/webauthn-browser.ts --import",
+    "test:research": "jest --runInBand src/tests/research-dataset.spec.ts"
   },
   "dependencies": {
     "@eslint/js": "10.0.1",
