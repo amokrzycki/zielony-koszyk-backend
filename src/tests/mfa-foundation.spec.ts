@@ -368,12 +368,14 @@ describe('Email OTP', () => {
 
     const delivered = [...fixture.challenges.values()][0];
     delivered.expires_at = new Date(Date.now() - 1);
-    fixture.sendMfaOtp.mockRejectedValueOnce(new Error('SMTP credentials'));
+    const smtpError = new Error('SMTP credentials');
+    fixture.sendMfaOtp.mockRejectedValueOnce(smtpError);
     await expect(
       fixture.service.createLoginChallenge(account),
     ).rejects.toMatchObject({
       status: 503,
       response: { message: 'Unable to send MFA code' },
+      cause: smtpError,
     });
     expect(fixture.challenges.size).toBe(0);
   });

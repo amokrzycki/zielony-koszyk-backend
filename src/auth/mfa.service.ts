@@ -724,9 +724,11 @@ export class MfaService {
 
     try {
       await this.mailService.sendMfaOtp(user.email, code);
-    } catch {
+    } catch (error) {
       await this.challenges.delete({ challenge_id: challenge.challenge_id });
-      throw new ServiceUnavailableException('Unable to send MFA code');
+      throw new ServiceUnavailableException('Unable to send MFA code', {
+        cause: error,
+      });
     }
 
     return challenge;

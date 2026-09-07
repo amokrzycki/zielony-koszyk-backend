@@ -6,3 +6,10 @@ node_modules
 npm-debug.log
 dist
 mysql-data
+.git
+coverage
+research/results
+research/secrets
+research/snapshots
+uploads
+invoices
