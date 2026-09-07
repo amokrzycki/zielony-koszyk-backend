@@ -10,8 +10,6 @@ const REQUIRED = [
   'SMTP_HOST',
   'SMTP_PORT',
   'SMTP_SECURE',
-  'SMTP_USER',
-  'SMTP_PASSWORD',
   'SMTP_FROM_EMAIL',
   'WEBAUTHN_RP_ID',
   'WEBAUTHN_ORIGIN',
@@ -47,6 +45,9 @@ export const validateEnvironment = (environment: Record<string, unknown>) => {
   }
   if (!['true', 'false'].includes(env.SMTP_SECURE)) {
     throw new Error('SMTP_SECURE must be true or false');
+  }
+  if (Boolean(environment.SMTP_USER) !== Boolean(environment.SMTP_PASSWORD)) {
+    throw new Error('SMTP_USER and SMTP_PASSWORD must be provided together');
   }
 
   if (!URL.canParse(env.DATABASE_URL)) {

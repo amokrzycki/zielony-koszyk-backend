@@ -32,7 +32,10 @@
     "research:dataset:snapshot": "node --env-file-if-exists=.env -r ts-node/register -r tsconfig-paths/register research/scripts/database-snapshot.ts",
     "research:dataset:restore": "node --env-file-if-exists=.env -r ts-node/register -r tsconfig-paths/register research/scripts/database-snapshot.ts --restore",
     "research:webauthn:import": "node --env-file-if-exists=.env -r ts-node/register -r tsconfig-paths/register research/scripts/webauthn-browser.ts --import",
-    "test:research": "jest --runInBand src/tests/research-dataset.spec.ts"
+    "research:e1": "node --env-file-if-exists=.env -r ts-node/register -r tsconfig-paths/register research/dataset/e1/scripts/run-e1.ts full",
+    "research:e1:preflight": "node --env-file-if-exists=.env -r ts-node/register -r tsconfig-paths/register research/dataset/e1/scripts/run-e1.ts preflight",
+    "research:e1:pilot": "node --env-file-if-exists=.env -r ts-node/register -r tsconfig-paths/register research/dataset/e1/scripts/run-e1.ts pilot",
+    "test:research": "jest --runInBand src/tests/research-dataset.spec.ts src/tests/e1-harness.spec.ts"
   },
   "dependencies": {
     "@eslint/js": "10.0.1",

@@ -20,6 +20,14 @@ const validEnvironment = () => ({
 describe('environment validation', () => {
   it('accepts the research configuration and rejects missing or unsafe values', () => {
     expect(validateEnvironment(validEnvironment())).toEqual(validEnvironment());
+    const mailpitEnvironment = {
+      ...validEnvironment(),
+      SMTP_HOST: 'mailpit',
+      SMTP_PORT: '1025',
+      SMTP_USER: '',
+      SMTP_PASSWORD: '',
+    };
+    expect(validateEnvironment(mailpitEnvironment)).toEqual(mailpitEnvironment);
 
     for (const invalid of [
       { ...validEnvironment(), JWT_SECRET: '' },
@@ -36,6 +44,7 @@ describe('environment validation', () => {
           .toString('base64')
           .replace(/=+$/, ''),
       },
+      { ...validEnvironment(), SMTP_PASSWORD: '' },
     ]) {
       expect(() => validateEnvironment(invalid)).toThrow();
     }

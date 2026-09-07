@@ -66,3 +66,4 @@ invoices/*
 !/research/secrets/.gitkeep
 /research/snapshots/*
 !/research/snapshots/.gitkeep
+/research/results/

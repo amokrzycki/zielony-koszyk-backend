@@ -4,8 +4,9 @@
 
 Badania są wykonywane na jednej instancji backendu uruchomionej bezpośrednio
 na Node.js 26, z frontendem zbudowanym przez Vite, PostgreSQL udostępnionym
-przez `DATABASE_URL` (obecnie Supabase) oraz rzeczywistym Mailgun SMTP. Obecny
-`docker-compose.yml` nie jest częścią profilu badawczego.
+przez `DATABASE_URL` (obecnie Supabase) oraz rzeczywistym lokalnym Mailpit SMTP.
+E1 uruchamia własny przypięty, efemeryczny Mailpit; ogólny `docker-compose.yml`
+pozostaje profilem developerskim, a nie wykonawcą kampanii.
 
 Stałe adresy profilu lokalnego:
 
@@ -15,7 +16,7 @@ Stałe adresy profilu lokalnego:
 | Backend | `http://localhost:3000` |
 | WebAuthn RP ID | `localhost` |
 | WebAuthn RP name | `Zielony Koszyk` |
-| SMTP | Mailgun, port `587`, STARTTLS (`SMTP_SECURE=false`) |
+| SMTP | lokalny Mailpit, port `1025`, bez TLS i auth |
 | Limiter | pamięciowy, jedna instancja; bez Redis i bez `trust proxy` |
 
 ## Przygotowanie
@@ -81,7 +82,7 @@ odtwarzaj zapisanych assertion, kodów ani tokenów pending.
 
 1. `NONE`: potwierdź regresję pełnej sesji po haśle.
 2. `EMAIL_OTP`: aktywuj metodę, wyloguj się, wykonaj
-   `hasło → pending → kod z Mailgun → pełna sesja`.
+   `hasło → pending → kod z interfejsu Mailpit → pełna sesja`.
 3. `TOTP`: przejdź enrollment, wyloguj się, wykonaj
    `hasło → pending → świeży kod TOTP → pełna sesja`; ponowne użycie tego kroku
    ma zostać odrzucone.
@@ -98,7 +99,8 @@ odtwarzaj zapisanych assertion, kodów ani tokenów pending.
 Mierz dwa żądania osobno:
 
 - inicjacja: od wysłania `POST /auth/login` do odpowiedzi; obejmuje weryfikację
-  hasła, utworzenie challenge i — dla e-mail OTP — synchroniczny Mailgun SMTP;
+  hasła, utworzenie challenge i — dla e-mail OTP — synchroniczną transmisję i
+  akceptację przez lokalny Mailpit SMTP;
 - finalizacja: od wysłania endpointu `*/verify` do pełnej odpowiedzi sesji;
   obejmuje weryfikację drugiego czynnika, atomowe zużycie challenge i wydanie
   access/refresh JWT.
