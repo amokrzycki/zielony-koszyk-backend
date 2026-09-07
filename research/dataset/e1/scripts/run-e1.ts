@@ -7,8 +7,8 @@ import { createConnection } from 'node:net';
 import * as os from 'node:os';
 import { basename, relative, resolve } from 'node:path';
 import { DataSource } from 'typeorm';
-import { MfaMethod } from '../../../src/enums/MfaMethod';
-import { E1_MAIL_DIAGNOSTIC_PREFIX } from '../../../src/services/mail.service';
+import { MfaMethod } from '../../../../src/enums/MfaMethod';
+import { E1_MAIL_DIAGNOSTIC_PREFIX } from '../../../../src/services/mail.service';
 import {
   ACCOUNTS_PATH,
   METADATA_PATH,
@@ -19,7 +19,7 @@ import {
   parseAccountsCsv,
   readJson,
   requireEnvironment,
-} from '../../dataset';
+} from '../../../dataset';
 import {
   cleanupResearchChallenges,
   connectDatabase,
@@ -27,8 +27,8 @@ import {
   loadCredentials,
   loadResearchUsers,
   researchChallengeCount,
-} from '../../runtime';
-import { validateDataset } from '../../scripts/validate-dataset';
+} from '../../../runtime';
+import { validateDataset } from '../../../scripts/validate-dataset';
 import {
   E1_VARIANTS,
   E1Variant,
@@ -110,11 +110,11 @@ type IndexRecord = {
   failureCount: number;
 };
 
-const BACKEND_ROOT = resolve(__dirname, '../../..');
+const BACKEND_ROOT = resolve(__dirname, '../../../..');
 const FRONTEND_ROOT =
   process.env.RESEARCH_FRONTEND_REPO ??
   resolve(BACKEND_ROOT, '../zielony-koszyk');
-const E1_ROOT = resolve(BACKEND_ROOT, 'research/e1');
+const E1_ROOT = resolve(BACKEND_ROOT, 'research/dataset/e1');
 const RESULTS_ROOT = resolve(BACKEND_ROOT, 'research/results/e1-init');
 const JMX_PATH = resolve(E1_ROOT, 'jmeter/e1-login.jmx');
 const JMETER_PROPERTIES_PATH = resolve(E1_ROOT, 'jmeter/e1.properties');

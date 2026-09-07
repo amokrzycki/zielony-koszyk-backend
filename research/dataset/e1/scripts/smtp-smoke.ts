@@ -8,17 +8,17 @@ import { format } from 'node:util';
 import Handlebars from 'handlebars';
 import { createTransport } from 'nodemailer';
 import type { Logger, LoggerLevel } from 'nodemailer/lib/shared';
-import { MfaMethod } from '../../../src/enums/MfaMethod';
+import { MfaMethod } from '../../../../src/enums/MfaMethod';
 import {
   ACCOUNTS_PATH,
   parseAccountsCsv,
   requireEnvironment,
   writeJsonPrivate,
-} from '../../dataset';
+} from '../../../dataset';
 
-const RESULTS_ROOT = resolve(__dirname, '../../results/e1-init');
-const BACKEND_ROOT = resolve(__dirname, '../../..');
-const TEMPLATE_PATH = resolve(__dirname, '../../../src/constants/mfa-otp.hbs');
+const RESULTS_ROOT = resolve(__dirname, '../../../results/e1-init');
+const BACKEND_ROOT = resolve(__dirname, '../../../..');
+const TEMPLATE_PATH = resolve(__dirname, '../../../../src/constants/mfa-otp.hbs');
 type Phase = 'long-session' | 'reconnect';
 type TechnicalError = {
   name: unknown;

@@ -15,7 +15,7 @@ import {
   parseMailDiagnosticEvents,
   parseJtl,
   summarizeMailpitPilot,
-} from '../../research/e1/protocol';
+} from '../../research/dataset/e1/protocol';
 
 describe('E1 harness', () => {
   it('uses the exact 12-round balanced Williams schedule', () => {
@@ -75,11 +75,11 @@ describe('E1 harness', () => {
   it('configures JTL without response, request or header data', async () => {
     const [properties, jmx] = await Promise.all([
       readFile(
-        resolve(__dirname, '../../research/e1/jmeter/e1.properties'),
+        resolve(__dirname, '../../research/dataset/e1/jmeter/e1.properties'),
         'utf8',
       ),
       readFile(
-        resolve(__dirname, '../../research/e1/jmeter/e1-login.jmx'),
+        resolve(__dirname, '../../research/dataset/e1/jmeter/e1-login.jmx'),
         'utf8',
       ),
     ]);

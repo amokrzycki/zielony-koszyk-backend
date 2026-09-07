@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { mkdir } from 'node:fs/promises';
-import { MfaMethod } from '../../src/enums/MfaMethod';
-import { ResearchAccount } from '../dataset';
+import { MfaMethod } from '../../../src/enums/MfaMethod';
+import { ResearchAccount } from '../../dataset';
 
 export const E1_VARIANTS = [
   MfaMethod.NONE,
