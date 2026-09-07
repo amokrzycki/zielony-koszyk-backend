@@ -1,0 +1,27 @@
+{
+  "dataset_version": 1,
+  "accounts": 200,
+  "clients": 50,
+  "accounts_per_variant": 50,
+  "variants": [
+    "NONE",
+    "EMAIL_OTP",
+    "TOTP",
+    "WEBAUTHN"
+  ],
+  "backend_commit": "f97f155d0487c1820b3e20e87e8add47ba8f6eae",
+  "frontend_commit": "dc4b104e0bd680305fd1f9eaddfe0acf73a4081a",
+  "database": {
+    "engine": "PostgreSQL",
+    "version": "17.6"
+  },
+  "webauthn": {
+    "rp_id": "localhost",
+    "origin": "http://localhost:5173",
+    "authenticator": "Chrome CDP virtual platform authenticator"
+  },
+  "password": {
+    "shared": true,
+    "bcrypt_cost": 10
+  }
+}
