@@ -245,6 +245,7 @@ export const serveFrontend = async (image: string) => {
     image,
   ]);
   await waitForHttp(FRONTEND_URL);
+  await new Promise((resolveDelay) => setTimeout(resolveDelay, 1_000));
 };
 
 export const startBackendServices = async () => {
