@@ -169,9 +169,13 @@ const main = async () => {
     ]);
     const password = process.env.MFA_RESEARCH_PASSWORD;
     assertValue(password);
+    let servedImage = BEFORE_IMAGE;
 
     for (const [scenarioIndex, plan] of PILOT_PLAN.entries()) {
-      await serveFrontend(plan.image);
+      if (plan.image !== servedImage) {
+        await serveFrontend(plan.image);
+        servedImage = plan.image;
+      }
       for (const [runIndex, slot] of plan.slots.entries()) {
         const account = users.find(
           (candidate) =>
