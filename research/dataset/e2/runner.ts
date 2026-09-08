@@ -1266,6 +1266,7 @@ const startJmeter = (
       JMX_PATH,
       '-q',
       JMETER_PROPERTIES_PATH,
+      '-Jsample_variables',
       '-l',
       jtlPath,
       '-j',

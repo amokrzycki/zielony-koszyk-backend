@@ -172,6 +172,34 @@ describe('E2 frozen protocol', () => {
 });
 
 describe('E2 JTL and JMeter contract', () => {
+  it('accepts only the exact five-column JTL schema', () => {
+    const valid = jtl(MfaMethod.EMAIL_OTP);
+    expect(() =>
+      validateJtl(parseJtl(valid), MfaMethod.EMAIL_OTP),
+    ).not.toThrow();
+    const [header, ...rows] = valid.trimEnd().split('\n');
+    expect(() =>
+      parseJtl([`${header},responseMessage`, ...rows, ''].join('\n')),
+    ).toThrow('JTL_FIELDS');
+    expect(() =>
+      parseJtl([header, `${rows[0]},Created`, ...rows.slice(1), ''].join('\n')),
+    ).toThrow('JTL_ROW');
+    for (let index = 0; index < JTL_FIELDS.length; index += 1) {
+      expect(() =>
+        parseJtl(
+          [
+            header
+              .split(',')
+              .filter((_, fieldIndex) => fieldIndex !== index)
+              .join(','),
+            ...rows,
+            '',
+          ].join('\n'),
+        ),
+      ).toThrow('JTL_FIELDS');
+    }
+  });
+
   it('accepts exactly 50 slots and rejects missing, duplicate, error and 429 samples', () => {
     const valid = parseJtl(jtl(MfaMethod.EMAIL_OTP));
     expect(() => validateJtl(valid, MfaMethod.EMAIL_OTP)).not.toThrow();
@@ -221,10 +249,74 @@ describe('E2 JTL and JMeter contract', () => {
   });
 
   it('has one generic verification sampler and only five persisted JTL fields', async () => {
-    const [properties, plan] = await Promise.all([
+    const [properties, plan, runner] = await Promise.all([
       readFile(resolve(__dirname, 'jmeter/e2.properties'), 'utf8'),
       readFile(resolve(__dirname, 'jmeter/e2-verify.jmx'), 'utf8'),
+      readFile(resolve(__dirname, 'runner.ts'), 'utf8'),
     ]);
+    const configured = new Map(
+      properties
+        .trimEnd()
+        .split('\n')
+        .map((line) => {
+          const separator = line.indexOf('=');
+          return [line.slice(0, separator), line.slice(separator + 1)];
+        }),
+    );
+    const columnSettings: Array<[string, string[]]> = [
+      ['timestamp_format', ['timeStamp']],
+      ['time', ['elapsed']],
+      ['label', ['label']],
+      ['response_code', ['responseCode']],
+      ['response_message', ['responseMessage']],
+      ['thread_name', ['threadName']],
+      ['data_type', ['dataType']],
+      ['successful', ['success']],
+      ['assertion_results_failure_message', ['failureMessage']],
+      ['bytes', ['bytes']],
+      ['sent_bytes', ['sentBytes']],
+      ['thread_counts', ['grpThreads', 'allThreads']],
+      ['url', ['URL']],
+      ['filename', ['Filename']],
+      ['latency', ['Latency']],
+      ['connect_time', ['Connect']],
+      ['encoding', ['Encoding']],
+      ['sample_count', ['SampleCount', 'ErrorCount']],
+      ['hostname', ['Hostname']],
+      ['idle_time', ['IdleTime']],
+    ];
+    const hostileGlobalConfiguration = new Map(
+      columnSettings.map(([name]) => [
+        `jmeter.save.saveservice.${name}`,
+        'true',
+      ]),
+    );
+    for (const [name, value] of configured) {
+      hostileGlobalConfiguration.set(name, value);
+    }
+    expect(
+      columnSettings.flatMap(([name, columns]) => {
+        const value = hostileGlobalConfiguration.get(
+          `jmeter.save.saveservice.${name}`,
+        );
+        return (
+          name === 'timestamp_format' ? value !== 'none' : value === 'true'
+        )
+          ? columns
+          : [];
+      }),
+    ).toEqual(JTL_FIELDS);
+    expect(configured.get('jmeter.save.saveservice.output_format')).toBe('csv');
+    expect(configured.get('jmeter.save.saveservice.print_field_names')).toBe(
+      'true',
+    );
+    expect(configured.get('jmeter.save.saveservice.default_delimiter')).toBe(
+      ',',
+    );
+    expect(configured.has('sample_variables')).toBe(false);
+    expect(runner).toContain("      '-q',\n      JMETER_PROPERTIES_PATH,");
+    expect(runner).toContain("      '-Jsample_variables',");
+    expect(runner).not.toContain('-Jjmeter.save.saveservice.');
     expect(plan.match(/<HTTPSamplerProxy /g)).toHaveLength(1);
     expect(plan).toContain(
       '<stringProp name="ThreadGroup.num_threads">50</stringProp>',
@@ -261,13 +353,27 @@ describe('E2 JTL and JMeter contract', () => {
     expect(plan).not.toContain('/auth/login');
     expect(plan).not.toContain('CookieManager');
     expect(plan).not.toContain('CSVDataSet');
+    for (const cleanup of [
+      "vars.remove('authorization')",
+      "vars.remove('request_body')",
+      'prev.setResponseData(new byte[0])',
+      "prev.setResponseHeaders('')",
+    ]) {
+      expect(plan).toContain(cleanup);
+    }
     for (const setting of [
+      'response_message=false',
+      'thread_counts=false',
+      'sample_count=false',
       'response_data=false',
       'response_data.on_error=false',
       'samplerData=false',
       'responseHeaders=false',
       'requestHeaders=false',
       'cookies=false',
+      'subresults=false',
+      'assertions=false',
+      'assertion_results=none',
       'url=false',
       'thread_name=false',
       'latency=false',
@@ -275,7 +381,15 @@ describe('E2 JTL and JMeter contract', () => {
       'httpclient4.retrycount=0',
       'httpclient4.request_sent_retry_enabled=false',
     ]) {
-      expect(properties).toContain(setting);
+      const separator = setting.indexOf('=');
+      const name = setting.slice(0, separator);
+      expect(
+        configured.get(
+          name.startsWith('httpclient')
+            ? name
+            : `jmeter.save.saveservice.${name}`,
+        ),
+      ).toBe(setting.slice(separator + 1));
     }
     expect(
       properties
@@ -830,9 +944,11 @@ describe('E2 artifact security and immutability', () => {
     expect(scanTextForSecrets('{"request_body":"value"}', [])).toContain(
       'BODY_FIELD',
     );
-    expect(scanTextForSecrets('{"mfa_token":"redacted"}', [])).toContain(
-      'SESSION_FIELD',
-    );
+    for (const field of ['mfa_token', 'access_token', 'refresh_token']) {
+      expect(scanTextForSecrets(`{"${field}":"redacted"}`, [])).toContain(
+        'SESSION_FIELD',
+      );
+    }
     expect(scanTextForSecrets('{"privateKey":"value"}', [])).toContain(
       'PRIVATE_SECRET',
     );
