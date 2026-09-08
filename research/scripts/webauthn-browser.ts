@@ -10,6 +10,10 @@ import {
   writeJsonPrivate,
 } from '../dataset';
 import { chromiumPath, frontendUrl } from '../runtime';
+import type {
+  AuthenticationResponseJSON,
+  PublicKeyCredentialRequestOptionsJSON,
+} from '@simplewebauthn/server';
 
 type CdpMessage = {
   id?: number;
@@ -306,6 +310,83 @@ export class WebAuthnBrowser {
         `WebAuthn challenge replay returned HTTP ${replay.status}, expected 401`,
       );
     }
+  }
+
+  async generateAssertionOnly(
+    options: PublicKeyCredentialRequestOptionsJSON,
+  ): Promise<AuthenticationResponseJSON> {
+    const origin = new URL(frontendUrl());
+    if (
+      origin.origin !== frontendUrl() ||
+      origin.origin !== process.env.WEBAUTHN_ORIGIN ||
+      !options.rpId ||
+      options.rpId !== process.env.WEBAUTHN_RP_ID ||
+      (origin.hostname !== options.rpId &&
+        !origin.hostname.endsWith(`.${options.rpId}`))
+    ) {
+      throw new Error('WebAuthn assertion origin or RP ID mismatch');
+    }
+    const value = await this.evaluate(
+      `(async () => {
+        const options = ${JSON.stringify(options)};
+        if (location.origin !== ${JSON.stringify(origin.origin)}) {
+          throw new Error('assertion origin mismatch');
+        }
+        const decode = (value) => {
+          const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+          const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+          return Uint8Array.from(atob(padded), (character) => character.charCodeAt(0));
+        };
+        const encode = (value) => {
+          const bytes = new Uint8Array(value);
+          let binary = '';
+          for (const byte of bytes) binary += String.fromCharCode(byte);
+          return btoa(binary).split('+').join('-').split('/').join('_').replace(/=+$/, '');
+        };
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 30000);
+        let credential;
+        try {
+          credential = await navigator.credentials.get({
+            publicKey: {
+              ...options,
+              challenge: decode(options.challenge),
+              allowCredentials: options.allowCredentials?.map((entry) => ({
+                ...entry,
+                id: decode(entry.id),
+              })),
+            },
+            signal: controller.signal,
+          });
+        } finally {
+          clearTimeout(timeout);
+        }
+        if (!(credential instanceof PublicKeyCredential) ||
+            !(credential.response instanceof AuthenticatorAssertionResponse)) {
+          throw new Error('invalid assertion');
+        }
+        return {
+          id: credential.id,
+          rawId: encode(credential.rawId),
+          response: {
+            authenticatorData: encode(credential.response.authenticatorData),
+            clientDataJSON: encode(credential.response.clientDataJSON),
+            signature: encode(credential.response.signature),
+            userHandle: credential.response.userHandle
+              ? encode(credential.response.userHandle)
+              : undefined,
+          },
+          type: credential.type,
+          clientExtensionResults: credential.getClientExtensionResults(),
+          authenticatorAttachment: credential.authenticatorAttachment,
+        };
+      })()`,
+      true,
+    );
+    if (!value || typeof value !== 'object') {
+      throw new Error('WebAuthn assertion generation failed');
+    }
+    return value as AuthenticationResponseJSON;
   }
 
   async snapshot(): Promise<WebAuthnSnapshot> {
