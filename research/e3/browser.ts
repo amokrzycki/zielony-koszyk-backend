@@ -302,7 +302,6 @@ const reserveEndpoints = async (input: JourneyInput) => {
 export const runJourney = async (
   input: JourneyInput,
 ): Promise<JourneyResult> => {
-  await reserveEndpoints(input);
   if (input.scenario === 'S2_EMAIL_OTP') await purgeMailpit();
 
   const profile = await mkdtemp(join(tmpdir(), 'zielony-e3-chromium-'));
@@ -354,6 +353,7 @@ export const runJourney = async (
       );
     }
     if (input.scenario === 'S3_TOTP') await guardTotpStep();
+    await reserveEndpoints(input);
 
     return await Promise.race([
       (async (): Promise<JourneyResult> => {
