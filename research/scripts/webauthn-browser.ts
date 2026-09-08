@@ -10,6 +10,10 @@ import {
   writeJsonPrivate,
 } from '../dataset';
 import { chromiumPath, frontendUrl } from '../runtime';
+import type {
+  AuthenticationResponseJSON,
+  PublicKeyCredentialRequestOptionsJSON,
+} from '@simplewebauthn/server';
 
 type CdpMessage = {
   id?: number;
@@ -101,7 +105,27 @@ class CdpClient {
   close() {
     this.socket.close();
   }
+
+  state() {
+    return (
+      ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'][this.socket.readyState] ??
+      'UNKNOWN'
+    );
+  }
 }
+
+export const assertWebAuthnBrowserContext = (
+  value: unknown,
+  expectedOrigin: string,
+) => {
+  const context = value as Record<string, unknown> | null;
+  if (!context || context.origin !== expectedOrigin)
+    throw new Error('WebAuthn browser origin unavailable');
+  if (context.secure !== true)
+    throw new Error('WebAuthn browser secure context unavailable');
+  if (context.webauthn !== true)
+    throw new Error('WebAuthn browser API unavailable');
+};
 
 const launchChromium = async () => {
   const profile = await mkdtemp(join(tmpdir(), 'zielony-research-chrome-'));
@@ -223,7 +247,15 @@ export class WebAuthnBrowser {
         launched.profile,
         snapshot,
       );
-      await browser.waitFor('document.readyState === "complete"');
+      await browser.waitFor(
+        `location.origin === ${JSON.stringify(frontendUrl())} && document.readyState === "complete"`,
+      );
+      assertWebAuthnBrowserContext(
+        await browser.evaluate(
+          '({ origin: location.origin, secure: isSecureContext, webauthn: typeof PublicKeyCredential === "function" })',
+        ),
+        frontendUrl(),
+      );
       return browser;
     } catch (error) {
       cdp?.close();
@@ -308,6 +340,83 @@ export class WebAuthnBrowser {
     }
   }
 
+  async generateAssertionOnly(
+    options: PublicKeyCredentialRequestOptionsJSON,
+  ): Promise<AuthenticationResponseJSON> {
+    const origin = new URL(frontendUrl());
+    if (
+      origin.origin !== frontendUrl() ||
+      origin.origin !== process.env.WEBAUTHN_ORIGIN ||
+      !options.rpId ||
+      options.rpId !== process.env.WEBAUTHN_RP_ID ||
+      (origin.hostname !== options.rpId &&
+        !origin.hostname.endsWith(`.${options.rpId}`))
+    ) {
+      throw new Error('WebAuthn assertion origin or RP ID mismatch');
+    }
+    const value = await this.evaluate(
+      `(async () => {
+        const options = ${JSON.stringify(options)};
+        if (location.origin !== ${JSON.stringify(origin.origin)}) {
+          throw new Error('assertion origin mismatch');
+        }
+        const decode = (value) => {
+          const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+          const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+          return Uint8Array.from(atob(padded), (character) => character.charCodeAt(0));
+        };
+        const encode = (value) => {
+          const bytes = new Uint8Array(value);
+          let binary = '';
+          for (const byte of bytes) binary += String.fromCharCode(byte);
+          return btoa(binary).split('+').join('-').split('/').join('_').replace(/=+$/, '');
+        };
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 30000);
+        let credential;
+        try {
+          credential = await navigator.credentials.get({
+            publicKey: {
+              ...options,
+              challenge: decode(options.challenge),
+              allowCredentials: options.allowCredentials?.map((entry) => ({
+                ...entry,
+                id: decode(entry.id),
+              })),
+            },
+            signal: controller.signal,
+          });
+        } finally {
+          clearTimeout(timeout);
+        }
+        if (!(credential instanceof PublicKeyCredential) ||
+            !(credential.response instanceof AuthenticatorAssertionResponse)) {
+          throw new Error('invalid assertion');
+        }
+        return {
+          id: credential.id,
+          rawId: encode(credential.rawId),
+          response: {
+            authenticatorData: encode(credential.response.authenticatorData),
+            clientDataJSON: encode(credential.response.clientDataJSON),
+            signature: encode(credential.response.signature),
+            userHandle: credential.response.userHandle
+              ? encode(credential.response.userHandle)
+              : undefined,
+          },
+          type: credential.type,
+          clientExtensionResults: credential.getClientExtensionResults(),
+          authenticatorAttachment: credential.authenticatorAttachment,
+        };
+      })()`,
+      true,
+    );
+    if (!value || typeof value !== 'object') {
+      throw new Error('WebAuthn assertion generation failed');
+    }
+    return value as AuthenticationResponseJSON;
+  }
+
   async snapshot(): Promise<WebAuthnSnapshot> {
     const { credentials } = await this.cdp.send<{
       credentials: WebAuthnSnapshot['authenticator']['credentials'];
@@ -333,6 +442,14 @@ export class WebAuthnBrowser {
         options: AUTHENTICATOR_OPTIONS,
         credentials: completeCredentials,
       },
+    };
+  }
+
+  diagnosticState() {
+    return {
+      chromium_alive:
+        this.child.exitCode === null && this.child.signalCode === null,
+      cdp_state: this.cdp.state(),
     };
   }
 
@@ -391,13 +508,23 @@ export class WebAuthnBrowser {
   private async evaluate(expression: string, userGesture = false) {
     const result = await this.cdp.send<{
       result: { value: unknown };
-      exceptionDetails?: { text: string };
+      exceptionDetails?: {
+        text: string;
+        exception?: { className?: string; description?: string };
+      };
     }>(
       'Runtime.evaluate',
       { expression, awaitPromise: true, returnByValue: true, userGesture },
       this.sessionId,
     );
-    if (result.exceptionDetails) throw new Error(result.exceptionDetails.text);
+    if (result.exceptionDetails) {
+      const exception = result.exceptionDetails.exception;
+      const error = new Error(
+        exception?.description?.split('\n')[0] ?? result.exceptionDetails.text,
+      );
+      error.name = exception?.className ?? 'Error';
+      throw error;
+    }
     return result.result.value;
   }
 

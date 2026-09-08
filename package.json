@@ -35,7 +35,12 @@
     "research:e1": "node --env-file-if-exists=.env -r ts-node/register -r tsconfig-paths/register research/dataset/e1/scripts/run-e1.ts full",
     "research:e1:preflight": "node --env-file-if-exists=.env -r ts-node/register -r tsconfig-paths/register research/dataset/e1/scripts/run-e1.ts preflight",
     "research:e1:pilot": "node --env-file-if-exists=.env -r ts-node/register -r tsconfig-paths/register research/dataset/e1/scripts/run-e1.ts pilot",
-    "test:research": "jest --runInBand src/tests/research-dataset.spec.ts src/tests/e1-harness.spec.ts"
+    "test:research": "jest --runInBand src/tests/research-dataset.spec.ts src/tests/e1-harness.spec.ts",
+    "test:e2": "jest --config research/dataset/e2/jest.config.json --runInBand",
+    "research:e2:preflight": "node --env-file-if-exists=.env -r ts-node/register -r tsconfig-paths/register research/dataset/e2/runner.ts preflight",
+    "research:e2:pilot": "node --env-file-if-exists=.env -r ts-node/register -r tsconfig-paths/register research/dataset/e2/runner.ts pilot",
+    "research:e2:full": "node --env-file-if-exists=.env -r ts-node/register -r tsconfig-paths/register research/dataset/e2/runner.ts full",
+    "research:e2:analysis": "node -r ts-node/register -r tsconfig-paths/register research/dataset/e2/runner.ts analysis"
   },
   "dependencies": {
     "@eslint/js": "10.0.1",

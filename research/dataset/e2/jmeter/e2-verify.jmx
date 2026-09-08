@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
+  <hashTree>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="E2 T_verify">
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.tearDown_on_shutdown">true</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+        <collectionProp name="Arguments.arguments"/>
+      </elementProp>
+    </TestPlan>
+    <hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="E2 ${__P(variant)} clients">
+        <stringProp name="ThreadGroup.on_sample_error">stoptestnow</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <stringProp name="LoopController.loops">1</stringProp>
+        </elementProp>
+        <stringProp name="ThreadGroup.num_threads">50</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">0</stringProp>
+        <boolProp name="ThreadGroup.scheduler">false</boolProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+      </ThreadGroup>
+      <hashTree>
+        <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Fetch one-shot in-memory request and await release">
+          <stringProp name="cacheKey">e2-broker-pre-v1</stringProp>
+          <stringProp name="filename"/>
+          <stringProp name="parameters"/>
+          <stringProp name="script">try {
+  def slot = String.format('%03d', ctx.getThreadNum() + 1)
+  def base = 'http://127.0.0.1:' + props.get('broker_port')
+  def client = java.net.http.HttpClient.newBuilder()
+    .connectTimeout(java.time.Duration.ofMillis(5000))
+    .followRedirects(java.net.http.HttpClient.Redirect.NEVER)
+    .version(java.net.http.HttpClient.Version.HTTP_1_1)
+    .build()
+  def call = { String path, String method, String body -&gt;
+    def builder = java.net.http.HttpRequest.newBuilder(java.net.URI.create(base + path))
+      .timeout(java.time.Duration.ofMillis(60000))
+    def request = method == 'POST'
+      ? builder.POST(body == null
+          ? java.net.http.HttpRequest.BodyPublishers.noBody()
+          : java.net.http.HttpRequest.BodyPublishers.ofString(body)).build()
+      : builder.GET().build()
+    def response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString())
+    if (response.statusCode() != 200) throw new IllegalStateException('BROKER_STATUS')
+    return response.body()
+  }
+  def packet = new groovy.json.JsonSlurper().parseText(call('/package/' + slot, 'GET', null))
+  if (packet.client_slot != slot || packet.variant != props.get('variant')) {
+    throw new IllegalStateException('BROKER_PACKAGE_MISMATCH')
+  }
+  vars.put('client_slot', slot)
+  vars.put('source_ip', '127.0.0.' + (ctx.getThreadNum() + 2))
+  vars.put('endpoint', packet.endpoint as String)
+  vars.put('authorization', packet.authorization as String)
+  vars.put('request_body', packet.body as String)
+  vars.put('expected_step', packet.expected_step == null ? '' : String.valueOf(packet.expected_step))
+  call('/ready/' + slot, 'POST', null)
+  call('/release/' + slot, 'GET', null)
+} catch (Exception ignored) {
+  throw new IllegalStateException('BROKER_PREPARATION_FAILURE')
+}</stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+        </JSR223PreProcessor>
+        <hashTree/>
+        <SyncTimer guiclass="TestBeanGUI" testclass="SyncTimer" testname="Final synchronization of 50 released clients">
+          <intProp name="groupSize">50</intProp>
+          <longProp name="timeoutInMs">15000</longProp>
+        </SyncTimer>
+        <hashTree/>
+        <JSR223Timer guiclass="TestBeanGUI" testclass="JSR223Timer" testname="TOTP guard immediately before verification">
+          <stringProp name="cacheKey">e2-totp-thread-guard-v1</stringProp>
+          <stringProp name="filename"/>
+          <stringProp name="parameters"/>
+          <stringProp name="script">if (vars.get('expected_step')) {
+  long now = System.currentTimeMillis()
+  long expected = Long.parseLong(vars.get('expected_step'))
+  if (Math.floorDiv(now, 30000L) != expected || Math.floorMod(now, 30000L) &gt; 10000L) {
+    throw new IllegalStateException('TOTP_THREAD_GUARD')
+  }
+}
+return 0</stringProp>
+          <stringProp name="scriptLanguage">groovy</stringProp>
+        </JSR223Timer>
+        <hashTree/>
+        <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="In-memory verification headers">
+          <collectionProp name="HeaderManager.headers">
+            <elementProp name="" elementType="Header">
+              <stringProp name="Header.name">Content-Type</stringProp>
+              <stringProp name="Header.value">application/json</stringProp>
+            </elementProp>
+            <elementProp name="" elementType="Header">
+              <stringProp name="Header.name">Authorization</stringProp>
+              <stringProp name="Header.value">${authorization}</stringProp>
+            </elementProp>
+          </collectionProp>
+        </HeaderManager>
+        <hashTree/>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="${__P(variant)}:${client_slot}">
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="Request body">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                <stringProp name="Argument.value">${request_body}</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
+          <stringProp name="HTTPSampler.domain">${__P(backend_host,127.0.0.1)}</stringProp>
+          <stringProp name="HTTPSampler.port">${__P(backend_port,3000)}</stringProp>
+          <stringProp name="HTTPSampler.protocol">${__P(backend_protocol,http)}</stringProp>
+          <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
+          <stringProp name="HTTPSampler.path">${endpoint}</stringProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">false</boolProp>
+          <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+          <stringProp name="HTTPSampler.embedded_url_re"/>
+          <stringProp name="HTTPSampler.connect_timeout">5000</stringProp>
+          <stringProp name="HTTPSampler.response_timeout">60000</stringProp>
+          <stringProp name="HTTPSampler.implementation">HttpClient4</stringProp>
+          <stringProp name="HTTPSampler.ipSource">${source_ip}</stringProp>
+          <intProp name="HTTPSampler.ipSourceType">0</intProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Return response in memory and clear sensitive values">
+            <stringProp name="cacheKey">e2-broker-post-v1</stringProp>
+            <stringProp name="filename"/>
+            <stringProp name="parameters"/>
+            <stringProp name="script">def code = 'BROKER_RESULT_CHANNEL'
+try {
+  def headers = prev.getResponseHeaders().readLines()
+  def cookies = headers.findAll { it.toLowerCase().startsWith('set-cookie:') }
+    .collect { it.substring(it.indexOf(':') + 1).trim() }
+  def contentTypeLine = headers.find { it.toLowerCase().startsWith('content-type:') }
+  def headerValue = { String name -&gt;
+    def line = headers.find { it.toLowerCase().startsWith(name.toLowerCase() + ':') }
+    return line == null ? '' : line.substring(line.indexOf(':') + 1).trim()
+  }
+  def payload = groovy.json.JsonOutput.toJson([
+    statusCode: Integer.parseInt(prev.getResponseCode()),
+    contentType: contentTypeLine == null ? '' : contentTypeLine.substring(contentTypeLine.indexOf(':') + 1).trim(),
+    rateLimitLimit: headerValue('X-RateLimit-Limit'),
+    rateLimitRemaining: headerValue('X-RateLimit-Remaining'),
+    rateLimitReset: headerValue('X-RateLimit-Reset'),
+    bodyText: prev.getResponseDataAsString(),
+    setCookie: cookies,
+    requestCount: 1,
+    redirectCount: 0,
+    retryCount: 0,
+  ])
+  def base = 'http://127.0.0.1:' + props.get('broker_port')
+  def client = java.net.http.HttpClient.newBuilder()
+    .connectTimeout(java.time.Duration.ofMillis(5000))
+    .followRedirects(java.net.http.HttpClient.Redirect.NEVER)
+    .version(java.net.http.HttpClient.Version.HTTP_1_1)
+    .build()
+  def request = java.net.http.HttpRequest.newBuilder(
+      java.net.URI.create(base + '/sample-end/' + vars.get('client_slot')))
+    .timeout(java.time.Duration.ofMillis(60000))
+    .header('Content-Type', 'application/json')
+    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(payload))
+    .build()
+  def response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString())
+  if (response.statusCode() == 200) {
+    def result = new groovy.json.JsonSlurper().parseText(response.body())
+    if (result.code instanceof String) code = result.code
+  }
+} catch (Exception ignored) {
+  code = 'BROKER_RESULT_CHANNEL'
+} finally {
+  vars.put('semantic_code', code)
+  vars.remove('authorization')
+  vars.remove('request_body')
+  vars.remove('expected_step')
+  prev.setResponseData(new byte[0])
+  prev.setResponseHeaders('')
+}</stringProp>
+            <stringProp name="scriptLanguage">groovy</stringProp>
+          </JSR223PostProcessor>
+          <hashTree/>
+          <JSR223Assertion guiclass="TestBeanGUI" testclass="JSR223Assertion" testname="Safe semantic result">
+            <stringProp name="cacheKey">e2-semantic-v1</stringProp>
+            <stringProp name="filename"/>
+            <stringProp name="parameters"/>
+            <stringProp name="script">def code = vars.get('semantic_code') ?: 'SEMANTIC_MISSING'
+if (prev.getResponseCode() != '201' || code != 'OK') {
+  AssertionResult.setFailure(true)
+  AssertionResult.setFailureMessage(code)
+}
+vars.remove('semantic_code')</stringProp>
+            <stringProp name="scriptLanguage">groovy</stringProp>
+          </JSR223Assertion>
+          <hashTree/>
+        </hashTree>
+      </hashTree>
+    </hashTree>
+  </hashTree>
+</jmeterTestPlan>

@@ -1,0 +1,8 @@
+{
+  "rootDir": "../../..",
+  "testEnvironment": "node",
+  "testRegex": "research/dataset/e2/e2\\.spec\\.ts$",
+  "transform": {
+    "^.+\\.ts$": "ts-jest"
+  }
+}
