@@ -48,6 +48,7 @@ import {
   burstPath,
   createExclusiveDirectory,
   createTopLevelArtifact,
+  scanArtifactText,
   scanArtifacts,
   sealDirectory,
   verifySha256Manifest,
@@ -1078,6 +1079,65 @@ describe('E2 artifact security and immutability', () => {
     expect(
       scanTextForSecrets(`${MAILPIT_IMAGE}\nuser@example.com`, []),
     ).toContain('ACCOUNT_IDENTITY');
+  });
+
+  it('treats six-digit TOTP collisions as numeric memory telemetry', () => {
+    const memory =
+      'timestamp_utc,memory_current_bytes\n2026-09-08T10:44:34.000Z,123456\n';
+    expect(scanArtifactText('burst/memory.csv', memory, ['123456'])).toEqual(
+      [],
+    );
+    expect(
+      scanArtifactText('burst/run.json', '{"value":"123456"}', ['123456']),
+    ).toContain('KNOWN_SECRET');
+  });
+
+  it.each([
+    [
+      'TOTP in an extra column',
+      'timestamp_utc,memory_current_bytes,extra\n2026-09-08T10:44:34.000Z,1,123456\n',
+    ],
+    [
+      'secret-named column',
+      'timestamp_utc,memory_current_bytes,mfa_token\n2026-09-08T10:44:34.000Z,1,123456\n',
+    ],
+    [
+      'text in a numeric column',
+      'timestamp_utc,memory_current_bytes\n2026-09-08T10:44:34.000Z,secret\n',
+    ],
+    [
+      'an extra column',
+      'timestamp_utc,memory_current_bytes,extra\n2026-09-08T10:44:34.000Z,1,2\n',
+    ],
+  ])('rejects memory.csv with %s', (_case, memory) => {
+    expect(scanArtifactText('burst/memory.csv', memory, ['123456'])).toContain(
+      'ARTIFACT_SCHEMA',
+    );
+  });
+
+  it('keeps every existing secret class active for numeric artifacts', () => {
+    const header = 'timestamp_utc,memory_current_bytes\n';
+    const timestamp = '2026-09-08T10:44:34.000Z';
+    for (const [value, code] of [
+      ['eyJabc.payload.signature', 'JWT'],
+      ['Authorization: value', 'SENSITIVE_HEADER'],
+      ['accessToken=value', 'COOKIE_VALUE'],
+      ['{"mfa_token":"value"}', 'SESSION_FIELD'],
+      ['{"request_body":"value"}', 'BODY_FIELD'],
+      ['{"privateKey":"value"}', 'PRIVATE_SECRET'],
+      ['{"authenticatorData":"value"}', 'WEBAUTHN_MATERIAL'],
+      ['user@example.test', 'ACCOUNT_IDENTITY'],
+    ]) {
+      expect(
+        scanArtifactText(
+          'burst/memory.csv',
+          `${header}${timestamp},1\n${value}\n`,
+          [value],
+        ),
+      ).toEqual(
+        expect.arrayContaining(['ARTIFACT_SCHEMA', 'KNOWN_SECRET', code]),
+      );
+    }
   });
 
   it('uses exclusive paths, atomic no-overwrite writes and verifiable manifests', async () => {

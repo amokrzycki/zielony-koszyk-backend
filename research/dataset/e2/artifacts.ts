@@ -140,6 +140,59 @@ export const filesUnder = async (directory: string): Promise<string[]> => {
   return files;
 };
 
+const scanMemoryCsv = (text: string, exactSecrets: string[]) => {
+  const schemaFailure = () =>
+    [
+      ...new Set([
+        'ARTIFACT_SCHEMA',
+        ...scanTextForSecrets(text, exactSecrets),
+      ]),
+    ].sort();
+  const lines = text.split('\n');
+  if (lines.at(-1) === '') lines.pop();
+  if (lines.shift() !== 'timestamp_utc,memory_current_bytes') {
+    return schemaFailure();
+  }
+  const timestamps: string[] = [];
+  for (const line of lines) {
+    const [timestamp, memory, extra] = line.split(',');
+    let canonicalTimestamp = false;
+    try {
+      canonicalTimestamp = new Date(timestamp).toISOString() === timestamp;
+    } catch {
+      // Invalid dates are rejected below.
+    }
+    if (
+      extra !== undefined ||
+      !canonicalTimestamp ||
+      !/^(?:0|[1-9]\d*)$/.test(memory) ||
+      !Number.isSafeInteger(Number(memory))
+    ) {
+      return schemaFailure();
+    }
+    timestamps.push(timestamp);
+  }
+  const otpSecrets = exactSecrets.filter((secret) => /^\d{6}$/.test(secret));
+  return [
+    ...new Set([
+      ...scanTextForSecrets(
+        text,
+        exactSecrets.filter((secret) => !/^\d{6}$/.test(secret)),
+      ),
+      ...scanTextForSecrets(timestamps.join('\n'), otpSecrets),
+    ]),
+  ].sort();
+};
+
+export const scanArtifactText = (
+  relativePath: string,
+  text: string,
+  exactSecrets: string[],
+) =>
+  basename(relativePath) === 'memory.csv'
+    ? scanMemoryCsv(text, exactSecrets)
+    : scanTextForSecrets(text, exactSecrets);
+
 export const scanArtifacts = async (root: string, exactSecrets: string[]) => {
   const incidents: Array<{ relative_path: string; codes: string[] }> = [];
   for (const path of await filesUnder(root)) {
@@ -149,7 +202,7 @@ export const scanArtifacts = async (root: string, exactSecrets: string[]) => {
     const codes = [
       ...new Set([
         ...nameCodes,
-        ...scanTextForSecrets(await readFile(path, 'utf8'), exactSecrets),
+        ...scanArtifactText(name, await readFile(path, 'utf8'), exactSecrets),
       ]),
     ].sort();
     if (!codes.length) continue;
@@ -163,12 +216,17 @@ export const scanArtifacts = async (root: string, exactSecrets: string[]) => {
     });
   }
   if (incidents.length) {
+    const code = incidents.some(({ codes }) =>
+      codes.includes('ARTIFACT_SCHEMA'),
+    )
+      ? 'ARTIFACT_SCHEMA'
+      : 'ARTIFACT_SECRET_SCAN';
     await atomicJson(resolve(root, 'incident.json'), {
       status: 'INVALID',
-      code: 'ARTIFACT_SECRET_SCAN',
+      code,
       incidents,
     });
-    throw new HarnessError('ARTIFACT_SECRET_SCAN');
+    throw new HarnessError(code);
   }
 };
 
