@@ -28,8 +28,15 @@ import {
   verifyArtifact,
   writeJsonExclusive,
 } from './artifacts';
+import { PILOT_PLAN } from './pilot';
 
 describe('E3 frozen algorithms', () => {
+  it('plans exactly three pilot runs for every frozen scenario', () => {
+    expect(PILOT_PLAN.map(({ scenario }) => scenario)).toEqual(SCENARIOS);
+    expect(PILOT_PLAN.flatMap(({ slots }) => slots)).toHaveLength(15);
+    expect(PILOT_PLAN.every(({ slots }) => slots.length === 3)).toBe(true);
+  });
+
   it('generates the exact deterministic balanced 21-block order', () => {
     expect(mulberry32(20_260_908)()).toBeCloseTo(0.5866398327052593, 15);
     expect(fisherYates(SCENARIOS, mulberry32(20_260_908))).toEqual([

@@ -82,7 +82,11 @@ export const createArtifactDirectory = async (
   resultsRoot: string,
   experimentId: string,
 ) => {
-  if (!/^e3-preflight-[0-9TZ-]+-[0-9a-f]{8}-[0-9a-f]{8}$/.test(experimentId)) {
+  if (
+    !/^e3-(?:preflight|pilot)-[0-9TZ-]+-[0-9a-f]{8}-[0-9a-f]{8}$/.test(
+      experimentId,
+    )
+  ) {
     throw new Error('ARTIFACT_ID');
   }
   const root = resolve(resultsRoot, experimentId);

@@ -49,16 +49,23 @@ import {
 } from './artifacts';
 
 const execFile = promisify(execFileCallback);
-const BACKEND_ROOT = resolve(__dirname, '../..');
-const WORKSPACE_ROOT = resolve(BACKEND_ROOT, '..');
-const FRONTEND_ROOT = resolve(WORKSPACE_ROOT, 'zielony-koszyk');
-const PROTOCOL_PATH = resolve(WORKSPACE_ROOT, 'E3.md');
-const RESULTS_ROOT = resolve(BACKEND_ROOT, 'research/results/e3-frontend');
+export const BACKEND_ROOT = resolve(__dirname, '../..');
+export const WORKSPACE_ROOT = resolve(BACKEND_ROOT, '..');
+export const FRONTEND_ROOT = resolve(WORKSPACE_ROOT, 'zielony-koszyk');
+export const PROTOCOL_PATH = resolve(WORKSPACE_ROOT, 'E3.md');
+export const RESULTS_ROOT = resolve(
+  BACKEND_ROOT,
+  'research/results/e3-frontend',
+);
 const FRONTEND_CONTAINER = 'green-basket-e3-frontend';
-const BEFORE_IMAGE = 'green-basket-frontend:e3-before';
-const AFTER_IMAGE = 'green-basket-frontend:e3-after';
+export const BEFORE_IMAGE = 'green-basket-frontend:e3-before';
+export const AFTER_IMAGE = 'green-basket-frontend:e3-after';
 
-type Check = { name: string; status: 'PASS' | 'FAIL' };
+type Check = {
+  name: string;
+  status: 'PASS' | 'FAIL';
+  technical_detail?: string;
+};
 
 const command = async (file: string, args: string[], cwd = BACKEND_ROOT) =>
   (
@@ -78,7 +85,19 @@ const check = async <T>(
     checks.push({ name, status: 'PASS' });
     return result;
   } catch (error) {
-    checks.push({ name, status: 'FAIL' });
+    const processError = error as Error & { stderr?: string; stdout?: string };
+    const technicalDetail = name.startsWith('build.')
+      ? [processError.stderr, processError.stdout, processError.message]
+          .filter(Boolean)
+          .join('\n')
+          .trim()
+          .slice(-8_000)
+      : '';
+    checks.push({
+      name,
+      status: 'FAIL',
+      ...(technicalDetail ? { technical_detail: technicalDetail } : {}),
+    });
     throw error;
   }
 };
@@ -87,10 +106,10 @@ const assertValue = (condition: unknown) => {
   if (!condition) throw new E3Error('ENVIRONMENT_MISMATCH');
 };
 
-const gitRevision = (directory: string) =>
+export const gitRevision = (directory: string) =>
   command('git', ['rev-parse', 'HEAD'], directory);
 
-const gitClean = async (directory: string) =>
+export const gitClean = async (directory: string) =>
   (await command('git', ['status', '--porcelain'], directory)) === '';
 
 const waitForHttp = async (url: string) => {
@@ -107,7 +126,7 @@ const waitForHttp = async (url: string) => {
   throw new E3Error('ENVIRONMENT_MISMATCH');
 };
 
-const hashDist = async (image: string) => {
+export const hashDist = async (image: string) => {
   const extraction = await mkdtemp(join(tmpdir(), 'zielony-e3-dist-'));
   const container = await command('docker', ['create', image]);
   try {
@@ -202,7 +221,7 @@ const buildHistoricalFrontend = async () => {
   }
 };
 
-const stopFrontend = async () => {
+export const stopFrontend = async () => {
   const existing = await command('docker', [
     'ps',
     '--all',
@@ -213,7 +232,7 @@ const stopFrontend = async () => {
   if (existing) await command('docker', ['rm', '-f', FRONTEND_CONTAINER]);
 };
 
-const serveFrontend = async (image: string) => {
+export const serveFrontend = async (image: string) => {
   await stopFrontend();
   await command('docker', [
     'run',
@@ -228,7 +247,7 @@ const serveFrontend = async (image: string) => {
   await waitForHttp(FRONTEND_URL);
 };
 
-const startBackendServices = async () => {
+export const startBackendServices = async () => {
   await command(
     'docker',
     ['compose', 'up', '--detach', '--build', 'mailpit', 'backend'],
@@ -240,7 +259,7 @@ const startBackendServices = async () => {
   ]);
 };
 
-const packageVersion = async (name: string) => {
+export const packageVersion = async (name: string) => {
   const contents = JSON.parse(
     await readFile(
       resolve(BACKEND_ROOT, 'node_modules', name, 'package.json'),
@@ -251,7 +270,7 @@ const packageVersion = async (name: string) => {
   return contents.version;
 };
 
-const exactSecrets = async () => {
+export const exactSecrets = async () => {
   const [totp, snapshot] = await Promise.all([
     readJson<TotpSecretStore>(TOTP_SECRETS_PATH),
     readJson<WebAuthnSnapshot>(WEBAUTHN_CHECKPOINT_PATH),
