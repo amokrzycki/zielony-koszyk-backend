@@ -97,7 +97,11 @@ const instrumentation = async () => {
         return target.textContent?.includes('Potwierdź') ? 'otp-submit' : 'login-submit';
       }
       if (target.textContent?.includes('Użyj klucza platformowego')) return 'webauthn-button';
-      if (target.matches('input[type="email"], input[aria-label="Email"]')) return 'email-input';
+      if (
+        target.matches('input[type="email"], input[aria-label="Email"]') ||
+        (target instanceof HTMLInputElement &&
+          [...target.labels].some((label) => label.textContent?.trim() === 'Email'))
+      ) return 'email-input';
       if (target.matches('input[type="password"]')) return 'password-input';
       if (target.matches('input[inputmode="numeric"]')) return 'otp-input';
       return target.tagName.toLowerCase();
