@@ -29,6 +29,7 @@ import {
   writeJsonExclusive,
 } from './artifacts';
 import { PILOT_PLAN } from './pilot';
+import { mergeExternalResources } from './browser';
 
 describe('E3 frozen algorithms', () => {
   it('plans exactly three pilot runs for every frozen scenario', () => {
@@ -117,6 +118,29 @@ describe('E3 preparation guards', () => {
 });
 
 describe('E3 validation and immutable artifacts', () => {
+  it('uses network events even without cross-origin resource timing', () => {
+    expect(
+      mergeExternalResources(
+        new Map([
+          [
+            'https://fonts.gstatic.com/font.woff2',
+            { initiator_type: 'font', success: true },
+          ],
+        ]),
+        [],
+      ),
+    ).toEqual([
+      {
+        origin: 'https://fonts.gstatic.com',
+        host: 'fonts.gstatic.com',
+        initiator_type: 'font',
+        duration: null,
+        transfer_size: null,
+        success: true,
+      },
+    ]);
+  });
+
   it('maps missing metrics and preserves explicit invalid reasons', () => {
     expect(classifyRun({ lcp_ms: null, inp_ms: 12 })).toEqual({
       valid: false,

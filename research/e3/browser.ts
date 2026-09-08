@@ -57,6 +57,39 @@ type MetricsSnapshot = {
   } | null;
 };
 
+type FontNetworkEntry = {
+  initiator_type: string;
+  success: boolean;
+};
+
+type ResourceTimingSnapshot = {
+  url: string;
+  initiator_type: string;
+  duration: number;
+  transfer_size: number;
+};
+
+export const mergeExternalResources = (
+  network: ReadonlyMap<string, FontNetworkEntry>,
+  timings: readonly ResourceTimingSnapshot[],
+): ExternalResource[] =>
+  [...network].map(([url, entry]) => {
+    const timing = timings.find((candidate) => candidate.url === url);
+    const parsed = new URL(url);
+    return {
+      origin: parsed.origin,
+      host: parsed.host,
+      initiator_type: timing?.initiator_type ?? entry.initiator_type,
+      duration:
+        timing && Number.isFinite(timing.duration) ? timing.duration : null,
+      transfer_size:
+        timing && Number.isFinite(timing.transfer_size)
+          ? timing.transfer_size
+          : null,
+      success: entry.success,
+    };
+  });
+
 export type JourneyResult = {
   navigation_start_ts: string;
   measured_window_end_ts: string;
@@ -309,7 +342,7 @@ export const runJourney = async (
   let navigationStart = '';
   let crashed = false;
   let runTimer: NodeJS.Timeout | undefined;
-  const fontNetwork = new Map<string, boolean>();
+  const fontNetwork = new Map<string, FontNetworkEntry>();
   let context:
     | Awaited<ReturnType<typeof chromium.launchPersistentContext>>
     | undefined;
@@ -333,16 +366,24 @@ export const runJourney = async (
     });
     page.on('requestfailed', (request) => {
       const url = new URL(request.url());
-      if (GOOGLE_FONT_HOSTS.has(url.hostname))
-        fontNetwork.set(request.url(), false);
+      if (GOOGLE_FONT_HOSTS.has(url.hostname)) {
+        fontNetwork.set(request.url(), {
+          initiator_type: request.resourceType(),
+          success: false,
+        });
+      }
     });
     page.on('response', (response) => {
       const url = new URL(response.url());
       if (GOOGLE_FONT_HOSTS.has(url.hostname)) {
-        fontNetwork.set(
-          response.url(),
-          response.status() >= 200 && response.status() < 300,
-        );
+        const previous = fontNetwork.get(response.url());
+        fontNetwork.set(response.url(), {
+          initiator_type: response.request().resourceType(),
+          success:
+            previous?.success !== false &&
+            response.status() >= 200 &&
+            response.status() < 300,
+        });
       }
     });
     if (input.scenario === 'S4_WEBAUTHN') {
@@ -494,23 +535,13 @@ export const runJourney = async (
         }
         if (
           !fontNetwork.size ||
-          [...fontNetwork.values()].some((success) => !success)
+          [...fontNetwork.values()].some(({ success }) => !success)
         ) {
           throw new E3Error('GOOGLE_FONTS_FAILURE');
         }
-        const externalResources: ExternalResource[] = resources.map(
-          (resource) => ({
-            origin: resource.origin,
-            host: resource.host,
-            initiator_type: resource.initiator_type,
-            duration: Number.isFinite(resource.duration)
-              ? resource.duration
-              : null,
-            transfer_size: Number.isFinite(resource.transfer_size)
-              ? resource.transfer_size
-              : null,
-            success: fontNetwork.get(resource.url) === true,
-          }),
+        const externalResources = mergeExternalResources(
+          fontNetwork,
+          resources,
         );
         if (
           !externalResources.length ||
