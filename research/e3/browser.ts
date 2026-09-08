@@ -12,7 +12,6 @@ import {
 import {
   ResearchUser,
   TotpSecretStore,
-  WEBAUTHN_SNAPSHOT_PATH,
   WebAuthnSnapshot,
   writeJsonPrivate,
 } from '../dataset';
@@ -31,6 +30,7 @@ import {
   THROTTLED_ENDPOINT,
   ThrottleScheduler,
   VIEWPORT,
+  WEBAUTHN_CHECKPOINT_PATH,
   guardTotpStep,
 } from './protocol';
 import { ExternalResource } from './artifacts';
@@ -433,7 +433,7 @@ export const runJourney = async (
           if (!updated) throw new E3Error('MFA_FAILURE');
           Object.assign(virtualAuthenticator.credential, updated);
           await writeJsonPrivate(
-            WEBAUTHN_SNAPSHOT_PATH,
+            WEBAUTHN_CHECKPOINT_PATH,
             input.webauthnSnapshot,
           );
         }

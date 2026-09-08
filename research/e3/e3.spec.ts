@@ -8,6 +8,7 @@ import {
   SCENARIOS,
   THROTTLE_WINDOW_MS,
   ThrottleScheduler,
+  WEBAUTHN_CHECKPOINT_PATH,
   classifyRun,
   fisherYates,
   frozenBackendCommit,
@@ -65,6 +66,12 @@ describe('E3 frozen algorithms', () => {
 });
 
 describe('E3 preparation guards', () => {
+  it('uses the canonical post-E2 WebAuthn checkpoint', () => {
+    expect(WEBAUTHN_CHECKPOINT_PATH).toMatch(
+      /research\/snapshots\/e2-webauthn-current\.json$/,
+    );
+  });
+
   it('paces each throttled endpoint in an independent rolling window', async () => {
     let now = 1_000;
     const waits: number[] = [];

@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
 
 export const PROTOCOL_ID = 'E3';
 export const FRONTEND_BEFORE_COMMIT =
@@ -9,6 +10,10 @@ export const CHROMIUM_EXECUTABLE = '/usr/bin/chromium';
 export const FRONTEND_URL = 'http://localhost:5173';
 export const BACKEND_URL = 'http://localhost:3000';
 export const WEBAUTHN_RP_ID = 'localhost';
+export const WEBAUTHN_CHECKPOINT_PATH = resolve(
+  __dirname,
+  '../snapshots/e2-webauthn-current.json',
+);
 export const VIEWPORT = { width: 1920, height: 1080 } as const;
 export const DEVICE_SCALE_FACTOR = 1;
 export const LOCALE = 'pl-PL';

@@ -7,7 +7,6 @@ import { promisify } from 'node:util';
 import { MfaMethod } from '../../src/enums/MfaMethod';
 import {
   TOTP_SECRETS_PATH,
-  WEBAUTHN_SNAPSHOT_PATH,
   TotpSecretStore,
   WebAuthnSnapshot,
   readJson,
@@ -37,6 +36,7 @@ import {
   TOTP_PERIOD_MS,
   ThrottleScheduler,
   VIEWPORT,
+  WEBAUTHN_CHECKPOINT_PATH,
   WEBAUTHN_RP_ID,
   frozenBackendCommit,
   protocolSha256,
@@ -253,7 +253,7 @@ const packageVersion = async (name: string) => {
 const exactSecrets = async () => {
   const [totp, snapshot] = await Promise.all([
     readJson<TotpSecretStore>(TOTP_SECRETS_PATH),
-    readJson<WebAuthnSnapshot>(WEBAUTHN_SNAPSHOT_PATH),
+    readJson<WebAuthnSnapshot>(WEBAUTHN_CHECKPOINT_PATH),
   ]);
   return [
     process.env.MFA_RESEARCH_PASSWORD,
@@ -304,6 +304,7 @@ const main = async () => {
     service_worker_present: false,
     webauthn_rp_id: WEBAUTHN_RP_ID,
     webauthn_origin: FRONTEND_URL,
+    webauthn_checkpoint: basename(WEBAUTHN_CHECKPOINT_PATH),
     backend_url: BACKEND_URL,
     frontend_url: FRONTEND_URL,
     throttle_scheduler_window_ms: THROTTLE_WINDOW_MS,
@@ -397,11 +398,15 @@ const main = async () => {
 
     await check(checks, 'services.backend_mailpit', startBackendServices);
     await check(checks, 'serve.before_mfa', () => serveFrontend(BEFORE_IMAGE));
-    const dataset = await check(checks, 'dataset.contract', datasetPreflight);
+    const dataset = await check(
+      checks,
+      'dataset.webauthn_post_e2_checkpoint_contract',
+      () => datasetPreflight(WEBAUTHN_CHECKPOINT_PATH),
+    );
     const users = await loadResearchUsers(dataset.source, dataset.expected);
     const [totpSecrets, webauthnSnapshot] = await Promise.all([
       readJson<TotpSecretStore>(TOTP_SECRETS_PATH),
-      readJson<WebAuthnSnapshot>(WEBAUTHN_SNAPSHOT_PATH),
+      readJson<WebAuthnSnapshot>(WEBAUTHN_CHECKPOINT_PATH),
     ]);
     const account = (variant: MfaMethod, slot: string) => {
       const user = users.find(
@@ -506,6 +511,7 @@ const main = async () => {
         throttle_window_ms: THROTTLE_WINDOW_MS,
         throttle_limit: THROTTLE_LIMIT,
         totp_min_remaining_ms: TOTP_MIN_REMAINING_MS,
+        webauthn_checkpoint: basename(WEBAUTHN_CHECKPOINT_PATH),
       },
       h4_policy: 'threshold-only; E3.md section 18',
       order_manifest_sha256: null,
