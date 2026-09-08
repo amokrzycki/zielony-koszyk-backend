@@ -80,8 +80,15 @@ export const CLIENT_SLOTS = Array.from({ length: CLIENTS }, (_, index) =>
   String(index + 1).padStart(3, '0'),
 );
 
+export type HarnessDiagnostic = Readonly<
+  Record<string, string | number | boolean>
+>;
+
 export class HarnessError extends Error {
-  constructor(readonly code: string) {
+  constructor(
+    readonly code: string,
+    readonly diagnostic?: HarnessDiagnostic,
+  ) {
     if (!/^[A-Z][A-Z0-9_]*$/.test(code)) {
       throw new Error('INVALID_SAFE_ERROR_CODE');
     }

@@ -1521,6 +1521,8 @@ const runBurst = async (input: {
     };
   } catch (error) {
     let code = error instanceof HarnessError ? error.code : 'BURST_INVALID';
+    let diagnostic =
+      error instanceof HarnessError ? error.diagnostic : undefined;
     try {
       state.invalidate(code);
     } catch {
@@ -1541,6 +1543,7 @@ const runBurst = async (input: {
       await scanArtifacts(directory, registry.all());
     } catch {
       code = 'ARTIFACT_SECRET_SCAN';
+      diagnostic = undefined;
     }
     if (!runWritten) {
       await atomicJson(resolve(directory, 'run.json'), {
@@ -1553,13 +1556,14 @@ const runBurst = async (input: {
         variant: input.variant,
         status: 'INVALID',
         code,
+        diagnostic,
         started_at_utc: startedAt,
         ended_at_utc: new Date().toISOString(),
       }).catch(() => undefined);
     }
-    await sealDirectory(directory).catch(() => undefined);
+    await sealDirectory(directory, registry.all()).catch(() => undefined);
     registry.clear();
-    throw new HarnessError(code);
+    throw new HarnessError(code, diagnostic);
   }
 };
 
@@ -2468,6 +2472,7 @@ const executeLive = async (options: CliOptions) => {
   await atomicJson(resolve(root, 'status.json'), {
     status: valid ? 'VALID' : 'INVALID',
     code: valid ? 'OK' : (failure?.code ?? 'CAMPAIGN_INVALID'),
+    diagnostic: valid ? undefined : failure?.diagnostic,
     mode: options.mode,
     experiment_id: experimentId,
     completed_at_utc: new Date().toISOString(),
@@ -2477,8 +2482,8 @@ const executeLive = async (options: CliOptions) => {
     approved_pilot_id:
       options.mode === 'full' ? options.approvedPilotId : undefined,
   });
+  await sealDirectory(root, registry.all());
   registry.clear();
-  await sealDirectory(root);
   if (!valid) throw failure ?? new HarnessError('CAMPAIGN_INVALID');
   return root;
 };

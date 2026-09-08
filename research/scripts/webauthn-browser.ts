@@ -105,7 +105,27 @@ class CdpClient {
   close() {
     this.socket.close();
   }
+
+  state() {
+    return (
+      ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'][this.socket.readyState] ??
+      'UNKNOWN'
+    );
+  }
 }
+
+export const assertWebAuthnBrowserContext = (
+  value: unknown,
+  expectedOrigin: string,
+) => {
+  const context = value as Record<string, unknown> | null;
+  if (!context || context.origin !== expectedOrigin)
+    throw new Error('WebAuthn browser origin unavailable');
+  if (context.secure !== true)
+    throw new Error('WebAuthn browser secure context unavailable');
+  if (context.webauthn !== true)
+    throw new Error('WebAuthn browser API unavailable');
+};
 
 const launchChromium = async () => {
   const profile = await mkdtemp(join(tmpdir(), 'zielony-research-chrome-'));
@@ -227,7 +247,15 @@ export class WebAuthnBrowser {
         launched.profile,
         snapshot,
       );
-      await browser.waitFor('document.readyState === "complete"');
+      await browser.waitFor(
+        `location.origin === ${JSON.stringify(frontendUrl())} && document.readyState === "complete"`,
+      );
+      assertWebAuthnBrowserContext(
+        await browser.evaluate(
+          '({ origin: location.origin, secure: isSecureContext, webauthn: typeof PublicKeyCredential === "function" })',
+        ),
+        frontendUrl(),
+      );
       return browser;
     } catch (error) {
       cdp?.close();
@@ -417,6 +445,14 @@ export class WebAuthnBrowser {
     };
   }
 
+  diagnosticState() {
+    return {
+      chromium_alive:
+        this.child.exitCode === null && this.child.signalCode === null,
+      cdp_state: this.cdp.state(),
+    };
+  }
+
   async saveSnapshot() {
     await writeJsonPrivate(WEBAUTHN_SNAPSHOT_PATH, await this.snapshot());
   }
@@ -472,13 +508,23 @@ export class WebAuthnBrowser {
   private async evaluate(expression: string, userGesture = false) {
     const result = await this.cdp.send<{
       result: { value: unknown };
-      exceptionDetails?: { text: string };
+      exceptionDetails?: {
+        text: string;
+        exception?: { className?: string; description?: string };
+      };
     }>(
       'Runtime.evaluate',
       { expression, awaitPromise: true, returnByValue: true, userGesture },
       this.sessionId,
     );
-    if (result.exceptionDetails) throw new Error(result.exceptionDetails.text);
+    if (result.exceptionDetails) {
+      const exception = result.exceptionDetails.exception;
+      const error = new Error(
+        exception?.description?.split('\n')[0] ?? result.exceptionDetails.text,
+      );
+      error.name = exception?.className ?? 'Error';
+      throw error;
+    }
     return result.result.value;
   }
 

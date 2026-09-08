@@ -61,8 +61,13 @@ import {
   sampleStandardDeviation,
 } from './analysis';
 import { parseCliArguments } from './runner';
-import { assertWebAuthnInitialState, generateAssertions } from './webauthn';
+import {
+  assertWebAuthnInitialState,
+  generateAssertions,
+  webAuthnDiagnostic,
+} from './webauthn';
 import { assertMailpitContainerInspect } from './preparation';
+import { assertWebAuthnBrowserContext } from '../../scripts/webauthn-browser';
 
 const jtl = (
   variant: (typeof E2_VARIANTS)[number],
@@ -601,6 +606,106 @@ describe('E2 WebAuthn counter handling', () => {
         1,
       ),
     ).toThrow('WEBAUTHN_COUNTER_DIVERGENCE');
+  });
+
+  it('rejects a Chromium error page and keeps failure diagnostics secret-free', () => {
+    expect(() =>
+      assertWebAuthnBrowserContext(
+        { origin: 'http://localhost:5173', secure: true, webauthn: true },
+        'http://localhost:5173',
+      ),
+    ).not.toThrow();
+    expect(() =>
+      assertWebAuthnBrowserContext(
+        { origin: 'null', secure: false, webauthn: true },
+        'http://localhost:5173',
+      ),
+    ).toThrow('WebAuthn browser origin unavailable');
+
+    const secrets = [
+      'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.signature',
+      'credential-material-1234567890',
+      'challenge-material-1234567890',
+      'user@example.test',
+    ];
+    const failure = new Error(
+      `Authorization: Bearer ${secrets[0]} credentialId=${secrets[1]} challenge=${secrets[2]} email=${secrets[3]} at http://localhost:5173/login`,
+    );
+    failure.name = 'DOMException';
+    const diagnostic = webAuthnDiagnostic(failure, {
+      lifecycleStage: 'assertion_generation',
+      clientSlot: '017',
+      durationMs: 12.6,
+      preparedAssertions: 16,
+      browserState: { chromium_alive: true, cdp_state: 'OPEN' },
+    });
+    const serialized = JSON.stringify(diagnostic);
+    expect(diagnostic).toMatchObject({
+      lifecycle_stage: 'assertion_generation',
+      client_slot: '017',
+      exception_type: 'DOMException',
+      duration_ms: 13,
+      chromium_alive: true,
+      cdp_state: 'OPEN',
+      prepared_assertions: 16,
+    });
+    expect(secrets.some((secret) => serialized.includes(secret))).toBe(false);
+    expect(scanTextForSecrets(serialized, secrets)).toEqual([]);
+  });
+
+  it('attaches the failing slot and completed count to assertion errors', async () => {
+    const previousRpId = process.env.WEBAUTHN_RP_ID;
+    process.env.WEBAUTHN_RP_ID = 'localhost';
+    try {
+      const counts = new Map(
+        credentials.map(({ credential_id, sign_count }) => [
+          credential_id,
+          sign_count,
+        ]),
+      );
+      const failure = new Error('NotAllowedError: operation timed out');
+      failure.name = 'DOMException';
+      const browser = {
+        generateAssertionOnly: jest.fn(() => Promise.reject(failure)),
+        snapshot: jest.fn(() => Promise.resolve(snapshot(counts))),
+        diagnosticState: jest.fn(() => ({
+          chromium_alive: true,
+          cdp_state: 'OPEN',
+        })),
+      };
+      const preparations = credentials.map((credential) => ({
+        ...credential,
+        token: 'synthetic-mfa-token',
+        options: {
+          challenge: 'synthetic-challenge',
+          rpId: 'localhost',
+          allowCredentials: [
+            { id: credential.credential_id, type: 'public-key' as const },
+          ],
+          userVerification: 'required' as const,
+        },
+      }));
+      await expect(
+        generateAssertions(
+          browser as never,
+          preparations,
+          new SecretRegistry(),
+        ),
+      ).rejects.toMatchObject({
+        code: 'WEBAUTHN_ASSERTION_GENERATION',
+        diagnostic: {
+          lifecycle_stage: 'assertion_generation',
+          client_slot: '001',
+          exception_type: 'DOMException',
+          chromium_alive: true,
+          cdp_state: 'OPEN',
+          prepared_assertions: 0,
+        },
+      });
+    } finally {
+      if (previousRpId === undefined) delete process.env.WEBAUTHN_RP_ID;
+      else process.env.WEBAUTHN_RP_ID = previousRpId;
+    }
   });
 
   it('generates real-shape assertions before baseline and aborts on fake CDP divergence', async () => {

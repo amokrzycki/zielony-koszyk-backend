@@ -10,6 +10,7 @@ import {
   VERIFY_ENDPOINT,
   assertWebAuthnCounterProgression,
 } from './protocol';
+import type { HarnessDiagnostic } from './protocol';
 import { RequestPackage } from './broker';
 import { SecretRegistry } from './security';
 import { MfaMethod } from '../../../src/enums/MfaMethod';
@@ -28,7 +29,47 @@ export type WebAuthnPreparation = WebAuthnDatabaseCredential & {
 type AssertionBrowser = Pick<
   WebAuthnBrowser,
   'generateAssertionOnly' | 'snapshot'
->;
+> &
+  Partial<Pick<WebAuthnBrowser, 'diagnosticState'>>;
+
+export const webAuthnDiagnostic = (
+  error: unknown,
+  input: {
+    lifecycleStage: 'browser_launch' | 'assertion_generation';
+    clientSlot?: string;
+    durationMs: number;
+    preparedAssertions: number;
+    browserState?: ReturnType<WebAuthnBrowser['diagnosticState']>;
+  },
+): HarnessDiagnostic => {
+  const type = error instanceof Error ? error.name : typeof error;
+  const rawMessage =
+    error instanceof Error ? error.message : 'Non-error browser rejection';
+  const exceptionMessage = rawMessage
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+/gi, '[redacted]')
+    .replace(/\b(?:https?|wss?):\/\/\S+/gi, '[redacted]')
+    .replace(/\b(?:authorization|cookie|set-cookie|bearer)\b/gi, '[redacted]')
+    .replace(/[A-Za-z0-9+/_=-]{16,}/g, '[redacted]')
+    .replace(/[^\x20-\x7e]/g, '?')
+    .slice(0, 200);
+  const cdpState = input.browserState?.cdp_state;
+  return {
+    lifecycle_stage: input.lifecycleStage,
+    ...(input.clientSlot ? { client_slot: input.clientSlot } : {}),
+    exception_type: /^[A-Za-z][A-Za-z0-9.]{0,63}$/.test(type)
+      ? type
+      : 'UnknownError',
+    exception_message: exceptionMessage || 'No browser error message',
+    duration_ms: Math.max(0, Math.round(input.durationMs)),
+    chromium_alive: input.browserState?.chromium_alive ?? false,
+    cdp_state:
+      typeof cdpState === 'string' &&
+      ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'].includes(cdpState)
+        ? cdpState
+        : 'UNKNOWN',
+    prepared_assertions: input.preparedAssertions,
+  };
+};
 
 const assertAuthenticatorConfiguration = (snapshot: WebAuthnSnapshot) => {
   const options = snapshot.authenticator.options;
@@ -112,10 +153,20 @@ export const generateAssertions = async (
     let assertion: Awaited<
       ReturnType<AssertionBrowser['generateAssertionOnly']>
     >;
+    const assertionStartedAt = Date.now();
     try {
       assertion = await browser.generateAssertionOnly(preparation.options);
-    } catch {
-      throw new HarnessError('WEBAUTHN_ASSERTION_GENERATION');
+    } catch (error) {
+      throw new HarnessError(
+        'WEBAUTHN_ASSERTION_GENERATION',
+        webAuthnDiagnostic(error, {
+          lifecycleStage: 'assertion_generation',
+          clientSlot: preparation.client_slot,
+          durationMs: Date.now() - assertionStartedAt,
+          preparedAssertions: packages.length,
+          browserState: browser.diagnosticState?.(),
+        }),
+      );
     }
     registry.add(preparation.credential_id);
     registry.addAssertion(assertion);
@@ -182,8 +233,22 @@ export class E2WebAuthnSession {
       throw new HarnessError('WEBAUTHN_ACTIVE_SNAPSHOT');
     }
     assertAuthenticatorConfiguration(snapshot);
+    const launchedAt = Date.now();
+    let browser: WebAuthnBrowser;
+    try {
+      browser = await WebAuthnBrowser.launch(snapshot);
+    } catch (error) {
+      throw new HarnessError(
+        'WEBAUTHN_BROWSER_LAUNCH',
+        webAuthnDiagnostic(error, {
+          lifecycleStage: 'browser_launch',
+          durationMs: Date.now() - launchedAt,
+          preparedAssertions: 0,
+        }),
+      );
+    }
     return new E2WebAuthnSession(
-      await WebAuthnBrowser.launch(snapshot),
+      browser,
       activeSnapshotPath,
       snapshot.authenticator.credentials.flatMap((credential) => [
         credential.credentialId,
