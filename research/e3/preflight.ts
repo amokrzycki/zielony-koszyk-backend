@@ -176,6 +176,7 @@ const buildHistoricalFrontend = async () => {
       resolve(WORKSPACE_ROOT, 'Dockerfile'),
       resolve(context, 'Dockerfile'),
     );
+    await copyFile(resolve(FRONTEND_ROOT, '.env'), resolve(worktree, '.env'));
     await command(
       'docker',
       [
