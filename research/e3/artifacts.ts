@@ -83,7 +83,7 @@ export const createArtifactDirectory = async (
   experimentId: string,
 ) => {
   if (
-    !/^e3-(?:preflight|pilot)-[0-9TZ-]+-[0-9a-f]{8}-[0-9a-f]{8}$/.test(
+    !/^e3-(?:(?:preflight|pilot|full)-[0-9TZ-]+-[0-9a-f]{8}-[0-9a-f]{8}|analysis-[0-9TZ-]+)$/.test(
       experimentId,
     )
   ) {

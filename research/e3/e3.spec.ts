@@ -29,6 +29,8 @@ import {
   writeJsonExclusive,
 } from './artifacts';
 import { PILOT_PLAN } from './pilot';
+import { MEASURED_PLAN } from './full';
+import { ScenarioSummary, evaluateH4, summarizeValues } from './analysis';
 import { mergeExternalResources } from './browser';
 
 describe('E3 frozen algorithms', () => {
@@ -61,6 +63,23 @@ describe('E3 frozen algorithms', () => {
     }
   });
 
+  it('assigns 21 untouched measured accounts to every scenario', () => {
+    expect(
+      SCENARIOS.flatMap((scenario) => MEASURED_PLAN[scenario].slots),
+    ).toHaveLength(105);
+    expect(
+      SCENARIOS.every(
+        (scenario) => MEASURED_PLAN[scenario].slots.length === MEASURED_BLOCKS,
+      ),
+    ).toBe(true);
+    expect(
+      new Set([
+        ...MEASURED_PLAN.S0_BEFORE_MFA.slots,
+        ...MEASURED_PLAN.S1_NONE.slots,
+      ]).size,
+    ).toBe(42);
+  });
+
   it('uses nearest-rank without interpolation', () => {
     expect(
       nearestRank(
@@ -70,6 +89,40 @@ describe('E3 frozen algorithms', () => {
     ).toBe(16);
     expect(nearestRank([4, 1, 2, 3], 0.5)).toBe(2);
     expect(() => nearestRank([], 0.75)).toThrow('NEAREST_RANK_INPUT');
+  });
+
+  it('applies the frozen descriptive statistics and threshold-only H4 rule', () => {
+    const stats = summarizeValues(
+      Array.from({ length: 21 }, (_, index) => index + 1),
+      0,
+    );
+    expect(stats).toMatchObject({
+      q1: 6,
+      median: 11,
+      p75: 16,
+      q3: 16,
+      iqr: 10,
+    });
+    const summaries = Object.fromEntries(
+      SCENARIOS.map((scenario) => [
+        scenario,
+        {
+          status: 'ANALYZABLE',
+          planned: 21,
+          n_valid: 21,
+          n_invalid: 0,
+          invalid_reasons: {},
+          metrics: {
+            lcp_ms: { ...stats, p75: 4_000, q3: 4_000 },
+            inp_ms: { ...stats, p75: 500, q3: 500 },
+            cls_value: { ...stats, p75: 0.25, q3: 0.25 },
+          },
+        } satisfies ScenarioSummary,
+      ]),
+    ) as Record<(typeof SCENARIOS)[number], ScenarioSummary>;
+    expect(evaluateH4(summaries).decision).toBe('CONFIRMED');
+    summaries.S4_WEBAUTHN.status = 'INVALID';
+    expect(evaluateH4(summaries).decision).toBe('BLOCKED');
   });
 });
 

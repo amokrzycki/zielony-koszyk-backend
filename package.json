@@ -43,6 +43,8 @@
     "research:e2:analysis": "node -r ts-node/register -r tsconfig-paths/register research/dataset/e2/runner.ts analysis",
     "research:e3:preflight": "node --env-file-if-exists=.env -r ts-node/register -r tsconfig-paths/register research/e3/preflight.ts",
     "research:e3:pilot": "node --env-file-if-exists=.env -r ts-node/register -r tsconfig-paths/register research/e3/pilot.ts",
+    "research:e3:full": "node --env-file-if-exists=.env -r ts-node/register -r tsconfig-paths/register research/e3/full.ts",
+    "research:e3:analysis": "node -r ts-node/register -r tsconfig-paths/register research/e3/analysis.ts",
     "test:e3": "jest --config research/e3/jest.config.json --runInBand"
   },
   "dependencies": {
