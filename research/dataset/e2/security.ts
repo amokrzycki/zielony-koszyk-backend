@@ -420,7 +420,11 @@ export const scanTextForSecrets = (text: string, exact: string[]) => {
   ) {
     codes.add('WEBAUTHN_MATERIAL');
   }
-  if (/["']user_id["']\s*[:=]|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/i.test(text)) {
+  if (
+    /["']user_id["']\s*[:=]|[A-Za-z0-9._%+-]+@(?!sha256:[a-f0-9]{64}(?![a-f0-9]))[A-Za-z0-9.-]+/i.test(
+      text,
+    )
+  ) {
     codes.add('ACCOUNT_IDENTITY');
   }
   return [...codes].sort();

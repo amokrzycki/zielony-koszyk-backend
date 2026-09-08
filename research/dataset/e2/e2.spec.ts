@@ -13,6 +13,7 @@ import {
   E2_VARIANTS,
   HarnessError,
   JTL_FIELDS,
+  MAILPIT_IMAGE,
   MEASURED_BURSTS,
   MEASURED_SAMPLES,
   MEASURED_SAMPLES_PER_VARIANT,
@@ -838,6 +839,24 @@ describe('E2 artifact security and immutability', () => {
     expect(scanTextForSecrets('{"authenticatorData":"value"}', [])).toContain(
       'WEBAUTHN_MATERIAL',
     );
+  });
+
+  it('distinguishes OCI SHA-256 references from email addresses', () => {
+    const digest = 'a'.repeat(64);
+    for (const image of [
+      `mailpit/mailpit@sha256:${digest}`,
+      `docker.io/axllent/mailpit@sha256:${digest}`,
+      `ghcr.io/example/image@sha256:${digest}`,
+      MAILPIT_IMAGE,
+    ]) {
+      expect(scanTextForSecrets(image, [])).not.toContain('ACCOUNT_IDENTITY');
+    }
+    for (const email of ['user@example.com', 'research.user+1@example.org']) {
+      expect(scanTextForSecrets(email, [])).toContain('ACCOUNT_IDENTITY');
+    }
+    expect(
+      scanTextForSecrets(`${MAILPIT_IMAGE}\nuser@example.com`, []),
+    ).toContain('ACCOUNT_IDENTITY');
   });
 
   it('uses exclusive paths, atomic no-overwrite writes and verifiable manifests', async () => {
