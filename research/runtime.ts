@@ -129,7 +129,9 @@ export const cleanupResearchChallenges = async (
   }
 };
 
-export const preflight = async () => {
+export const preflight = async (
+  webauthnSnapshotPath = WEBAUTHN_SNAPSHOT_PATH,
+) => {
   requireEnvironment('MFA_RESEARCH_PASSWORD', 'RESEARCH_MAIL_DOMAIN');
   validateEnvironment(process.env);
   const domain = researchDomain();
@@ -168,7 +170,7 @@ export const preflight = async () => {
   const [users, totpSecrets, snapshot] = await Promise.all([
     loadResearchUsers(source, expected),
     readJson<TotpSecretStore>(TOTP_SECRETS_PATH, {}),
-    readJson<WebAuthnSnapshot | null>(WEBAUTHN_SNAPSHOT_PATH, null),
+    readJson<WebAuthnSnapshot | null>(webauthnSnapshotPath, null),
   ]);
   const userIds = users.map(({ user_id }) => user_id);
   const [credentials, challengeCount] = await Promise.all([
