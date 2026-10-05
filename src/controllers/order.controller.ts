@@ -22,6 +22,10 @@ import { Request, Response } from 'express';
 import { User } from '../entities/user.entity';
 import { Roles } from '../enums/Roles';
 import { UpdateOrderDto } from '../dto/update-order.dto';
+import { RequestLocale } from '../i18n/request-locale.decorator';
+import { Locale } from '../i18n/locale';
+import { invoiceFileName } from '../services/invoice.service';
+import { coded, ErrorCode } from '../errors/error-code';
 
 @ApiBearerAuth()
 @Controller('orders')
@@ -52,20 +56,29 @@ export class OrderController {
     const currentUser = req.user as User;
 
     if (!order || !order.invoice_path) {
-      throw new NotFoundException('Invoice not found');
+      throw coded(
+        NotFoundException,
+        ErrorCode.INVOICE_NOT_FOUND,
+        'Invoice not found',
+      );
     }
 
     if (
       order.user_id !== currentUser.user_id &&
       currentUser.role !== Roles.ADMIN
     ) {
-      throw new ForbiddenException(
+      throw coded(
+        ForbiddenException,
+        ErrorCode.INVOICE_FORBIDDEN,
         'You are not allowed to download this invoice',
       );
     }
 
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'attachment; filename="invoice.pdf"');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${invoiceFileName(order)}"`,
+    );
     res.sendFile(order.invoice_path, { root: '.' });
   }
 
@@ -76,8 +89,11 @@ export class OrderController {
   }
 
   @Post()
-  create(@Body() createOrderDto: CreateOrderDto): Promise<Order> {
-    return this.ordersService.create(createOrderDto);
+  create(
+    @Body() createOrderDto: CreateOrderDto,
+    @RequestLocale() locale: Locale,
+  ): Promise<Order> {
+    return this.ordersService.create(createOrderDto, locale);
   }
 
   @UseGuards(JwtAuthGuard)

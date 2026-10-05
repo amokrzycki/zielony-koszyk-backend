@@ -101,7 +101,9 @@ describe('Scenariusz: Składanie zamówienia (e2e)', () => {
       same_address: true,
     };
 
-    const response = await request(app.getHttpServer())
+    const response = await request(
+      app.getHttpServer() as Parameters<typeof request>[0],
+    )
       .post('/orders')
       .send(newOrder);
 
@@ -121,7 +123,9 @@ describe('Scenariusz: Składanie zamówienia (e2e)', () => {
       orderItems: [],
     };
 
-    const response = await request(app.getHttpServer())
+    const response = await request(
+      app.getHttpServer() as Parameters<typeof request>[0],
+    )
       .post('/orders')
       .send(newOrder);
 
@@ -166,7 +170,9 @@ describe('Scenariusz: Składanie zamówienia (e2e)', () => {
       orderItems: [{ product_id: 3, quantity: 5, price: 100 }],
     };
 
-    const response = await request(app.getHttpServer())
+    const response = await request(
+      app.getHttpServer() as Parameters<typeof request>[0],
+    )
       .post('/orders')
       .send(companyOrder);
 

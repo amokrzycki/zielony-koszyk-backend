@@ -2,23 +2,30 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { ProductTranslation } from './product-translation.entity';
 
 @Entity('products')
 export class Product {
   @PrimaryGeneratedColumn()
   product_id: number;
 
-  @Column()
-  name: string;
+  /** Localized name/description live in `product_translations`, one row per locale. */
+  @OneToMany(() => ProductTranslation, (translation) => translation.product, {
+    cascade: true,
+  })
+  translations: ProductTranslation[];
 
-  @Column('text')
-  description: string;
+  /** Query-time joins of the requested locale's row and the default-locale fallback; never persisted. */
+  localized?: ProductTranslation | null;
+  fallback?: ProductTranslation | null;
 
   @Column('decimal', { precision: 10, scale: 2 })
   price: number;
 
+  /** Opaque, language-independent category id (e.g. 'owoce'); display labels belong to the clients. */
   @Column()
   category: string;
 

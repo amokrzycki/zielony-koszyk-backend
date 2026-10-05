@@ -324,7 +324,7 @@ export class WebAuthnBrowser {
       true,
     );
     const request = await verificationRequest;
-    await this.waitFor('location.pathname === "/"', 30_000);
+    await this.waitFor('/^\\/(pl|en)\\/?$/.test(location.pathname)', 30_000);
     const replay = await fetch(request.url, {
       method: 'POST',
       headers: {
@@ -482,7 +482,7 @@ export class WebAuthnBrowser {
       `document.querySelector('button[type="submit"]')?.click()`,
       true,
     );
-    await this.waitFor('location.pathname === "/"', 30_000);
+    await this.waitFor('/^\\/(pl|en)\\/?$/.test(location.pathname)', 30_000);
   }
 
   private async navigate(path: string) {

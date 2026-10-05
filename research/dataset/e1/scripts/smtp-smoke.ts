@@ -18,7 +18,10 @@ import {
 
 const RESULTS_ROOT = resolve(__dirname, '../../../results/e1-init');
 const BACKEND_ROOT = resolve(__dirname, '../../../..');
-const TEMPLATE_PATH = resolve(__dirname, '../../../../src/constants/mfa-otp.hbs');
+const TEMPLATE_PATH = resolve(
+  __dirname,
+  '../../../../src/constants/mfa-otp.hbs',
+);
 type Phase = 'long-session' | 'reconnect';
 type TechnicalError = {
   name: unknown;

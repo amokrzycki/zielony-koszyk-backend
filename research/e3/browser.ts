@@ -484,7 +484,8 @@ export const runJourney = async (
         }
 
         await page.waitForURL(
-          (url) => url.origin === FRONTEND_URL && url.pathname === '/',
+          (url) =>
+            url.origin === FRONTEND_URL && /^\/(pl|en)\/?$/.test(url.pathname),
           { timeout: STEP_TIMEOUT_MS },
         );
         const clsBoundary = await page.evaluate(() => performance.now());

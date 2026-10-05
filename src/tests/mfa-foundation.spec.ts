@@ -198,7 +198,12 @@ const mfaServiceFixture = (
     MFA_OTP_HMAC_KEY: otpHmacKey,
     MFA_TOTP_ENCRYPTION_KEY: Buffer.alloc(32, 2).toString('base64'),
   });
-  const sendMfaOtp = jest.fn().mockResolvedValue(undefined);
+  const sendMfaOtp = jest
+    .fn<
+      ReturnType<MailService['sendMfaOtp']>,
+      Parameters<MailService['sendMfaOtp']>
+    >()
+    .mockResolvedValue(undefined);
   const mailService = { sendMfaOtp } as unknown as MailService;
 
   return {
@@ -323,7 +328,7 @@ describe('Email OTP', () => {
     const payload = jwtService.verify<MfaTokenPayload>(pending.mfa_token, {
       algorithms: ['HS256'],
     });
-    const code = sendMfaOtp.mock.calls[0][1] as string;
+    const code = sendMfaOtp.mock.calls[0][1];
     const challenge = challenges.get(payload.jti);
 
     expect(code).toMatch(/^\d{6}$/);
@@ -385,7 +390,7 @@ describe('Email OTP', () => {
     const account = user(MfaMethod.EMAIL_OTP);
     const first = await service.createLoginChallenge(account);
     const firstPayload = jwtService.verify<MfaTokenPayload>(first.mfa_token);
-    const firstCode = sendMfaOtp.mock.calls[0][1] as string;
+    const firstCode = sendMfaOtp.mock.calls[0][1];
 
     await expect(service.createLoginChallenge(account)).rejects.toMatchObject({
       status: 429,
@@ -403,7 +408,7 @@ describe('Email OTP', () => {
     );
     const second = await service.createLoginChallenge(account);
     const secondPayload = jwtService.verify<MfaTokenPayload>(second.mfa_token);
-    const secondCode = sendMfaOtp.mock.calls[1][1] as string;
+    const secondCode = sendMfaOtp.mock.calls[1][1];
 
     await expect(
       service.verifyEmailOtp(account.user_id, firstPayload.jti, firstCode),
@@ -543,7 +548,9 @@ describe('MFA token isolation', () => {
         .set('Cookie', refreshCookie ?? '')
         .expect(201);
       expect(
-        jwtService.decode(staleRefreshed.body.access_token as string),
+        jwtService.decode(
+          (staleRefreshed.body as { access_token: string }).access_token,
+        ),
       ).not.toHaveProperty('method');
       const pending = await request(server)
         .post('/auth/login')
@@ -586,7 +593,7 @@ describe('MFA token isolation', () => {
         .set('Cookie', `accessToken=${pendingBody.mfa_token}`)
         .expect(401);
 
-      const code = sendMfaOtp.mock.calls[0][1] as string;
+      const code = sendMfaOtp.mock.calls[0][1];
       const verified = await request(server)
         .post('/auth/mfa/email-otp/verify')
         .set('Authorization', `Bearer ${pendingBody.mfa_token}`)
@@ -598,7 +605,9 @@ describe('MFA token isolation', () => {
       });
       expect(verified.body).toHaveProperty('access_token');
       expect(
-        jwtService.decode(verified.body.access_token as string),
+        jwtService.decode(
+          (verified.body as { access_token: string }).access_token,
+        ),
       ).toMatchObject({ method: MfaMethod.EMAIL_OTP });
       expect(verified.headers['set-cookie']).toHaveLength(2);
       expect(challenges.size).toBe(0);

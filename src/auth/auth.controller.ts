@@ -20,6 +20,9 @@ import { MfaService } from './mfa.service';
 import { MfaMethod } from '../enums/MfaMethod';
 import { User } from '../entities/user.entity';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
+import { RequestLocale } from '../i18n/request-locale.decorator';
+import { DEFAULT_LOCALE, Locale } from '../i18n/locale';
+import { coded, ErrorCode } from '../errors/error-code';
 
 type Session = ReturnType<AuthService['login']>;
 
@@ -51,18 +54,27 @@ export class AuthController {
   @Post('auth/login')
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @UseGuards(ThrottlerGuard)
-  async login(@Body() loginDto: LoginDto, @Res() res: Response) {
+  async login(
+    @Body() loginDto: LoginDto,
+    @Res() res: Response,
+    @RequestLocale() locale: Locale = DEFAULT_LOCALE,
+  ) {
     const user = await this.authService.validateUser(
       loginDto.email,
       loginDto.password,
     );
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw coded(
+        UnauthorizedException,
+        ErrorCode.INVALID_CREDENTIALS,
+        'Invalid credentials',
+      );
     }
     if (user.mfa_method !== MfaMethod.NONE) {
       const pending = await this.mfaService.createLoginChallenge(
         user as Pick<User, 'user_id' | 'email' | 'mfa_method'>,
         loginDto.rememberMe,
+        locale,
       );
       this.clearSessionCookies(res);
       res.json({ mfa_required: true, ...pending });

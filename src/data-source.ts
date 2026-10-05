@@ -5,6 +5,6 @@ export default new DataSource({
   url: process.env.DATABASE_URL,
   schema: 'zielonykoszyk',
   entities: [__dirname + '/**/*.entity{.ts,.js}'],
-  migrations: [__dirname + '/migrations/*{.ts,.js}'],
+  migrations: [__dirname + '/migrations/[0-9]*-*{.ts,.js}'],
   synchronize: false,
 });

@@ -1,3 +1,5 @@
+import { RequestLocale } from '../i18n/request-locale.decorator';
+import { Locale } from '../i18n/locale';
 import {
   Body,
   Controller,
@@ -47,8 +49,11 @@ export class UserController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Post('admin-create')
-  async createUser(@Body() user: CreateUserDto): Promise<User> {
-    return this.usersService.createUserFromAdmin(user);
+  async createUser(
+    @Body() user: CreateUserDto,
+    @RequestLocale() locale: Locale,
+  ): Promise<User> {
+    return this.usersService.createUserFromAdmin(user, locale);
   }
 
   @ApiBearerAuth()

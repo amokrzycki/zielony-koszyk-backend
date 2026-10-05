@@ -9,7 +9,7 @@
 <p>Dziękujemy za twoje zamówienie!</p>
 <p>Numer twojego zamówienia to: <strong>{{order_id}}</strong>.</p>
 <p>Data złożenia zamówienia: {{order_date}}</p>
-<p>Kwota całkowita: {{total_amount}} zł</p>
+<p>Kwota całkowita: {{total_amount}}</p>
 <h3>Szczegóły zamówienia:</h3>
 <ul>
   {{#each orderItems}}
@@ -19,7 +19,7 @@
       {{else}}
         x{{this.quantity}}
       {{/if}}
-      - {{this.price}} zł
+      - {{this.price}}
     </li>
   {{/each}}
 </ul>

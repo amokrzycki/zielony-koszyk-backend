@@ -6,12 +6,13 @@ import { OrderModule } from './order.module';
 import { ProductModule } from './product.module';
 import { OrderItem } from '../entities/order-item.entity';
 import { Order } from '../entities/order.entity';
+import { ProductTranslation } from '../entities/product-translation.entity';
 import { OrderItemSubscriber } from '../subscribers/order-item.subscriber';
 import { DataSource } from 'typeorm';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([OrderItem, Order]),
+    TypeOrmModule.forFeature([OrderItem, Order, ProductTranslation]),
     OrderModule,
     ProductModule,
   ],
