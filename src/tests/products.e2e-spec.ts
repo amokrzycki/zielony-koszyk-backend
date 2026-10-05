@@ -27,11 +27,13 @@ describe('Scenariusz: Tworzenie produktu (e2e)', () => {
   let accessToken: string;
 
   const newProduct: CreateProductDto = {
-    name: 'Testowy produkt',
-    description: 'Opis produktu',
     price: 10,
     category: 'Owoce',
     stock_quantity: 10,
+    translations: {
+      pl: { name: 'Testowy produkt', description: 'Opis produktu' },
+      en: { name: 'Test product', description: 'Product description' },
+    },
   };
 
   beforeAll(async () => {
@@ -42,7 +44,9 @@ describe('Scenariusz: Tworzenie produktu (e2e)', () => {
     app = moduleRef.createNestApplication();
     await app.init();
 
-    const login = await request(app.getHttpServer())
+    const login = await request(
+      app.getHttpServer() as Parameters<typeof request>[0],
+    )
       .post('/auth/login')
       .send({ email: 'admin@admin.pl', password: 'hasloadmina!1' });
     const body = login.body as AuthLoginResponse;
@@ -54,7 +58,9 @@ describe('Scenariusz: Tworzenie produktu (e2e)', () => {
   });
 
   it('Nie powinno pozwolić na stworzenie produktu przez usera bez tokenu', async () => {
-    const response = await request(app.getHttpServer())
+    const response = await request(
+      app.getHttpServer() as Parameters<typeof request>[0],
+    )
       .post('/products')
       .field('product', JSON.stringify(newProduct));
 
@@ -62,7 +68,9 @@ describe('Scenariusz: Tworzenie produktu (e2e)', () => {
   });
 
   it('Powinno pozwolić adminowi na stworzenie produktu', async () => {
-    const response = await request(app.getHttpServer())
+    const response = await request(
+      app.getHttpServer() as Parameters<typeof request>[0],
+    )
       .post('/products')
       .set('Authorization', `Bearer ${accessToken}`)
       .field('product', JSON.stringify(newProduct))
@@ -72,6 +80,7 @@ describe('Scenariusz: Tworzenie produktu (e2e)', () => {
     const body = response.body as CreateProductResponse;
 
     expect(body).toHaveProperty('product_id');
-    expect(body.name).toBe(newProduct.name);
+    // No Accept-Language: the default (Polish) text comes back.
+    expect(body.name).toBe(newProduct.translations.pl.name);
   });
 });

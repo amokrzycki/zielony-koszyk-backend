@@ -15,6 +15,12 @@ import { OrderItem } from '../entities/order-item.entity';
 import { InvoiceService } from './invoice.service';
 import { Address } from '../entities/address.entity';
 import { UpdateOrderDto } from '../dto/update-order.dto';
+import { ProductTranslation } from '../entities/product-translation.entity';
+import { OrderItemType } from '../enums/OrderItemType';
+import { Locale } from '../i18n/locale';
+import { DELIVERY_LABEL } from '../i18n/labels';
+import { pickTranslation } from '../i18n/translate';
+import { coded, ErrorCode } from '../errors/error-code';
 
 @Injectable()
 export class OrderService {
@@ -49,12 +55,14 @@ export class OrderService {
     return this.ordersRepository.findBy({ user_id: id });
   }
 
-  async create(createOrderDto: CreateOrderDto): Promise<Order> {
+  async create(createOrderDto: CreateOrderDto, locale: Locale): Promise<Order> {
     let savedOrder: Order;
 
     await this.dataSource.transaction(async (manager) => {
       const order = new Order();
       order.status = Statuses.NEW;
+      // Captured once, here: invoices and e-mails for this order use it forever, whatever later requests say.
+      order.locale = locale;
       order.order_type = createOrderDto.order_type;
       order.customer_email = createOrderDto.customer_email;
 
@@ -64,7 +72,9 @@ export class OrderService {
         });
 
         if (!user) {
-          throw new NotFoundException(
+          throw coded(
+            NotFoundException,
+            ErrorCode.USER_NOT_FOUND,
             `User with ID ${createOrderDto.user_id} not found`,
           );
         }
@@ -120,7 +130,11 @@ export class OrderService {
     });
 
     if (!existingOrder) {
-      throw new NotFoundException(`Order with ID ${id} not found`);
+      throw coded(
+        NotFoundException,
+        ErrorCode.ORDER_NOT_FOUND,
+        `Order with ID ${id} not found`,
+      );
     }
 
     const updatedOrder = { ...existingOrder, ...orderUpdate };
@@ -150,7 +164,9 @@ export class OrderService {
       }
 
       if (product.stock_quantity < detail.quantity) {
-        throw new ConflictException(
+        throw coded(
+          ConflictException,
+          ErrorCode.INSUFFICIENT_STOCK,
           `Insufficient stock for product ID ${detail.product_id}. Available: ${product.stock_quantity}, Requested: ${detail.quantity}`,
         );
       }
@@ -158,8 +174,15 @@ export class OrderService {
       product.stock_quantity -= detail.quantity;
       await manager.getRepository(Product).save(product);
 
+      // Snapshot in the order's language; later catalog edits must not rewrite history.
+      const translations = await manager
+        .getRepository(ProductTranslation)
+        .findBy({ product_id: product.product_id });
       orderDetail.product = product;
-      orderDetail.product_name = product.name;
+      orderDetail.item_type = OrderItemType.PRODUCT;
+      orderDetail.product_name =
+        (pickTranslation(translations, order.locale) ?? translations[0])
+          ?.name ?? '';
       orderDetail.quantity = detail.quantity;
       orderDetail.price = detail.price;
       orderDetail.order_id = order.order_id;
@@ -173,7 +196,8 @@ export class OrderService {
 
   private addDeliveryCost(order: Order) {
     const shippingOrderDetail = new OrderItem();
-    shippingOrderDetail.product_name = 'Dostawa';
+    shippingOrderDetail.item_type = OrderItemType.DELIVERY;
+    shippingOrderDetail.product_name = DELIVERY_LABEL[order.locale];
     shippingOrderDetail.quantity = 1;
     shippingOrderDetail.price = 10;
     shippingOrderDetail.order_id = order.order_id;

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Order confirmation</title>
+</head>
+<body>
+<p>Hello {{customer_name}}!</p>
+<p>Thank you for your order!</p>
+<p>Your order number is: <strong>{{order_id}}</strong>.</p>
+<p>Order date: {{order_date}}</p>
+<p>Total amount: {{total_amount}}</p>
+<h3>Order details:</h3>
+<ul>
+  {{#each orderItems}}
+    <li>
+      {{this.product_name}}
+      {{#if this.isDelivery}}
+      {{else}}
+        x{{this.quantity}}
+      {{/if}}
+      - {{this.price}}
+    </li>
+  {{/each}}
+</ul>
+<p>We will let you know when your order is ready to ship!</p>
+<p>Kind regards,<br>The Zielony Koszyk team</p>
+</body>
+</html>

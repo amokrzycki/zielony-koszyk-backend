@@ -1,3 +1,5 @@
+import { coded, ErrorCode } from '../errors/error-code';
+import { DEFAULT_LOCALE, Locale } from '../i18n/locale';
 import {
   BadRequestException,
   Injectable,
@@ -47,7 +49,11 @@ export class UserService {
     });
 
     if (existingUser) {
-      throw new BadRequestException('User with this email already exists');
+      throw coded(
+        BadRequestException,
+        ErrorCode.EMAIL_ALREADY_EXISTS,
+        'User with this email already exists',
+      );
     }
 
     const hashedPassword = await bcrypt.hash(user.password, SALT_ROUNDS);
@@ -76,13 +82,20 @@ export class UserService {
     });
   }
 
-  async createUserFromAdmin(user: CreateUserDto): Promise<User> {
+  async createUserFromAdmin(
+    user: CreateUserDto,
+    locale: Locale = DEFAULT_LOCALE,
+  ): Promise<User> {
     const existingUser = await this.usersRepository.findOneBy({
       email: user.email,
     });
 
     if (existingUser) {
-      throw new BadRequestException('User with this email already exists');
+      throw coded(
+        BadRequestException,
+        ErrorCode.EMAIL_ALREADY_EXISTS,
+        'User with this email already exists',
+      );
     }
 
     const generatedPassword = generateRandomPassword(12);
@@ -109,6 +122,7 @@ export class UserService {
       await this.mailService.sendEmailWithPassword(
         savedUser,
         generatedPassword,
+        locale,
       );
     } catch (error) {
       console.error('Unable to send account welcome email', error);
@@ -126,7 +140,11 @@ export class UserService {
     const userToUpdate = await this.usersRepository.findOneBy({ user_id: id });
 
     if (!userToUpdate) {
-      throw new NotFoundException('User not found');
+      throw coded(
+        NotFoundException,
+        ErrorCode.USER_NOT_FOUND,
+        'User not found',
+      );
     }
 
     await this.usersRepository.update(id, {
@@ -149,7 +167,11 @@ export class UserService {
     const userToUpdate = await this.usersRepository.findOneBy({ user_id: id });
 
     if (!userToUpdate) {
-      throw new NotFoundException('User not found');
+      throw coded(
+        NotFoundException,
+        ErrorCode.USER_NOT_FOUND,
+        'User not found',
+      );
     }
 
     if (!user.password || user.password.trim() === '') {
@@ -162,7 +184,11 @@ export class UserService {
     );
 
     if (!isPasswordCorrect) {
-      throw new BadRequestException('Old password is incorrect');
+      throw coded(
+        BadRequestException,
+        ErrorCode.OLD_PASSWORD_INCORRECT,
+        'Old password is incorrect',
+      );
     }
 
     if (!user.new_password || user.new_password.trim() === '') {
@@ -191,7 +217,11 @@ export class UserService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw coded(
+        NotFoundException,
+        ErrorCode.USER_NOT_FOUND,
+        'User not found',
+      );
     }
 
     const address = this.addressesRepository.create({
@@ -220,7 +250,11 @@ export class UserService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw coded(
+        NotFoundException,
+        ErrorCode.USER_NOT_FOUND,
+        'User not found',
+      );
     }
 
     await this.usersRepository.update(userId, {
@@ -284,7 +318,11 @@ export class UserService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw coded(
+        NotFoundException,
+        ErrorCode.USER_NOT_FOUND,
+        'User not found',
+      );
     }
     return user.addresses.filter((addr) => addr.is_user_address === true);
   }

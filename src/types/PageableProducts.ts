@@ -1,7 +1,7 @@
-import { Product } from '../entities/product.entity';
+import { ProductResponseDto } from '../dto/product-response.dto';
 
 export interface PageableProducts {
-  data: Product[];
+  data: ProductResponseDto[];
   totalCount: number;
   currentPage: number;
   pageSize: number;

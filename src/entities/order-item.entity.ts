@@ -9,6 +9,7 @@ import {
 import { Order } from './order.entity';
 import { Product } from './product.entity';
 import { Exclude } from 'class-transformer';
+import { OrderItemType } from '../enums/OrderItemType';
 
 @Entity('order_items')
 export class OrderItem {
@@ -32,6 +33,10 @@ export class OrderItem {
   @JoinColumn({ name: 'product_id' })
   product: Relation<Product>;
 
+  @Column({ type: 'enum', enum: OrderItemType, default: OrderItemType.PRODUCT })
+  item_type: OrderItemType;
+
+  /** Snapshot in the order's language, taken at order time; never re-resolved from the catalog. */
   @Column()
   product_name: string;
 

@@ -1,10 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import PDFDocument = require('pdfkit');
+import * as PDFDocument from 'pdfkit';
 import * as path from 'path';
 import * as fs from 'fs';
 import { Order } from '../entities/order.entity';
 import { CustomerType } from '../types/CustomerType';
 import { OrderType } from '../types/OrderType';
+import { formatCurrency, formatDate } from '../i18n/format';
+import { INVOICE_FILE_PREFIX } from '../i18n/labels';
+import { INVOICE_LABELS } from './invoice-labels';
+
+/** User-facing file name, in the order's language. */
+export const invoiceFileName = (order: Pick<Order, 'order_id' | 'locale'>) =>
+  `${INVOICE_FILE_PREFIX[order.locale]}_${order.order_id}.pdf`;
 
 @Injectable()
 export class InvoiceService {
@@ -12,6 +19,8 @@ export class InvoiceService {
     order: Order,
     same_address: boolean,
   ): Promise<Buffer> {
+    const { locale } = order;
+    const l = INVOICE_LABELS[locale];
     const doc = new PDFDocument({
       size: 'A4',
       margins: { top: 50, bottom: 50, left: 50, right: 50 },
@@ -41,7 +50,7 @@ export class InvoiceService {
 
     doc.moveDown(5);
 
-    doc.font('OpenSansBold').fontSize(20).text('Faktura', {
+    doc.font('OpenSansBold').fontSize(20).text(l.title, {
       align: 'center',
     });
 
@@ -53,10 +62,10 @@ export class InvoiceService {
       .moveDown(0.5)
       .font('OpenSansRegular')
       .fontSize(12)
-      .text(`Sprzedawca: ZIELONY KOSZYK`)
+      .text(`${l.seller}: ZIELONY KOSZYK`)
       .text(`ul. Mokrzyckiego 4/20`)
       .text(`36-105 Cmolas`)
-      .text(`NIP: 6902137420`);
+      .text(`${l.taxId}: 6902137420`);
 
     doc.moveDown();
 
@@ -66,27 +75,25 @@ export class InvoiceService {
       .moveDown(0.5)
       .font('OpenSansRegular')
       .fontSize(12)
-      .text(`Numer zamówienia: ${order.order_id}`)
-      .text(`Data zamówienia: ${order.order_date.toLocaleDateString()}`)
-      .text(
-        `${same_address ? 'Dane do faktury i dostawy' : 'Dane do faktury'}:`,
-      );
+      .text(`${l.orderNumber}: ${order.order_id}`)
+      .text(`${l.orderDate}: ${formatDate(order.order_date, locale)}`)
+      .text(`${same_address ? l.billingAndShipping : l.billing}:`);
 
     if (order.order_type === OrderType.COMPANY) {
-      doc.text(`Firma: ${order.billingAddress.company_name}`);
-      doc.text(`NIP: ${order.billingAddress.nip}`);
+      doc.text(`${l.company}: ${order.billingAddress.company_name}`);
+      doc.text(`${l.taxId}: ${order.billingAddress.nip}`);
     } else {
       doc.text(
-        `Imię i nazwisko: ${order.billingAddress.first_name} ${order.billingAddress.last_name}`,
+        `${l.fullName}: ${order.billingAddress.first_name} ${order.billingAddress.last_name}`,
       );
     }
 
     doc
       .text(
-        `Adres: ${order.billingAddress.street} ${order.billingAddress.building_number}${order.billingAddress.flat_number ? `/${order.billingAddress.flat_number}` : ''}, ${order.billingAddress.zip} ${order.billingAddress.city}`,
+        `${l.address}: ${order.billingAddress.street} ${order.billingAddress.building_number}${order.billingAddress.flat_number ? `/${order.billingAddress.flat_number}` : ''}, ${order.billingAddress.zip} ${order.billingAddress.city}`,
       )
-      .text(`Email: ${order.customer_email}`)
-      .text(`Telefon: ${order.billingAddress.phone}`);
+      .text(`${l.email}: ${order.customer_email}`)
+      .text(`${l.phone}: ${order.billingAddress.phone}`);
 
     doc.moveDown();
 
@@ -97,20 +104,20 @@ export class InvoiceService {
         .moveDown(0.5)
         .font('OpenSansRegular')
         .fontSize(12)
-        .text('Dane do dostawy:');
+        .text(`${l.shipping}:`);
 
       if (order.shippingAddress.customer_type === CustomerType.COMPANY) {
-        doc.text(`Firma: ${order.shippingAddress.company_name}`);
-        doc.text(`NIP: ${order.shippingAddress.nip}`);
+        doc.text(`${l.company}: ${order.shippingAddress.company_name}`);
+        doc.text(`${l.taxId}: ${order.shippingAddress.nip}`);
       } else {
         doc.text(
-          `Imię i nazwisko: ${order.shippingAddress.first_name} ${order.shippingAddress.last_name}`,
+          `${l.fullName}: ${order.shippingAddress.first_name} ${order.shippingAddress.last_name}`,
         );
       }
       doc
-        .text(`Telefon: ${order.shippingAddress.phone}`)
+        .text(`${l.phone}: ${order.shippingAddress.phone}`)
         .text(
-          `Adres: ${order.shippingAddress.street} ${order.shippingAddress.building_number} ${order.shippingAddress.flat_number ? `/${order.shippingAddress.flat_number}` : ''}, ${order.shippingAddress.zip} ${order.shippingAddress.city}`,
+          `${l.address}: ${order.shippingAddress.street} ${order.shippingAddress.building_number} ${order.shippingAddress.flat_number ? `/${order.shippingAddress.flat_number}` : ''}, ${order.shippingAddress.zip} ${order.shippingAddress.city}`,
         );
 
       doc.moveDown();
@@ -122,16 +129,16 @@ export class InvoiceService {
       .moveDown(1)
       .font('OpenSansBold')
       .fontSize(14)
-      .text('Produkty:', { align: 'center' });
+      .text(`${l.products}:`, { align: 'center' });
     doc.moveDown(0.5);
 
     const tableTopY = doc.y;
     doc
       .fontSize(12)
-      .text('Nazwa produktu', 50, tableTopY, { width: 200, align: 'left' })
-      .text('Ilość', 250, tableTopY, { width: 80, align: 'right' })
-      .text('Cena (szt.)', 330, tableTopY, { width: 100, align: 'right' })
-      .text('Wartość', 430, tableTopY, { width: 100, align: 'right' });
+      .text(l.productName, 50, tableTopY, { width: 200, align: 'left' })
+      .text(l.quantity, 250, tableTopY, { width: 80, align: 'right' })
+      .text(l.unitPrice, 330, tableTopY, { width: 100, align: 'right' })
+      .text(l.value, 430, tableTopY, { width: 100, align: 'right' });
 
     let currentY = tableTopY + doc.currentLineHeight() + 5;
 
@@ -149,11 +156,11 @@ export class InvoiceService {
           width: 80,
           align: 'right',
         })
-        .text(`${Number(item.price).toFixed(2)} zł`, 330, currentY, {
+        .text(formatCurrency(item.price, locale), 330, currentY, {
           width: 100,
           align: 'right',
         })
-        .text(`${itemValue.toFixed(2)} zł`, 430, currentY, {
+        .text(formatCurrency(itemValue, locale), 430, currentY, {
           width: 100,
           align: 'right',
         });
@@ -170,15 +177,15 @@ export class InvoiceService {
 
     doc
       .font('OpenSansBold')
-      .text('Razem:', 50, currentY, { width: 380, align: 'right' })
-      .text(`${totalAmount.toFixed(2)} zł`, 430, currentY, {
+      .text(`${l.total}:`, 50, currentY, { width: 380, align: 'right' })
+      .text(formatCurrency(totalAmount, locale), 430, currentY, {
         width: 100,
         align: 'right',
       });
 
     doc.moveDown(2);
 
-    doc.font('OpenSansRegular').fontSize(10).text('Dziękujemy za zakupy!', {
+    doc.font('OpenSansRegular').fontSize(10).text(l.thanks, {
       align: 'center',
     });
 

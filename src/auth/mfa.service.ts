@@ -1,3 +1,4 @@
+import { DEFAULT_LOCALE, Locale } from '../i18n/locale';
 import {
   BadRequestException,
   ForbiddenException,
@@ -157,6 +158,7 @@ export class MfaService {
   async createLoginChallenge(
     user: Pick<User, 'user_id' | 'email' | 'mfa_method'>,
     rememberMe = false,
+    locale: Locale = DEFAULT_LOCALE,
   ) {
     if (user.mfa_method === MfaMethod.TOTP) {
       await this.assertTotpConfigured(user.user_id);
@@ -171,7 +173,7 @@ export class MfaService {
 
     const challenge =
       user.mfa_method === MfaMethod.EMAIL_OTP
-        ? await this.createEmailOtpChallenge(user)
+        ? await this.createEmailOtpChallenge(user, locale)
         : await this.createChallenge(
             user.user_id,
             user.mfa_method,
@@ -708,7 +710,10 @@ export class MfaService {
     return delta === null ? null : totp.counter({ timestamp }) + delta;
   }
 
-  private async createEmailOtpChallenge(user: Pick<User, 'user_id' | 'email'>) {
+  private async createEmailOtpChallenge(
+    user: Pick<User, 'user_id' | 'email'>,
+    locale: Locale,
+  ) {
     const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
     const challenge_id = randomUUID();
     const challenge = await this.createChallenge(
@@ -723,7 +728,7 @@ export class MfaService {
     );
 
     try {
-      await this.mailService.sendMfaOtp(user.email, code);
+      await this.mailService.sendMfaOtp(user.email, code, locale);
     } catch (error) {
       await this.challenges.delete({ challenge_id: challenge.challenge_id });
       throw new ServiceUnavailableException('Unable to send MFA code', {

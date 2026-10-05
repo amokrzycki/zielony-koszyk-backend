@@ -1,7 +1,7 @@
+/** `product_name` is deliberately absent: the snapshot is resolved server-side in the order's language. */
 export class AddOrderItemsDto {
   order_id: number;
   product_id: number;
-  product_name: string;
   quantity: number;
   price: number;
 }

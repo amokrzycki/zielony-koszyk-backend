@@ -12,7 +12,7 @@ import { OrderItemService } from '../services/order-item.service';
 import { OrderItem } from '../entities/order-item.entity';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ApiBearerAuth } from '@nestjs/swagger';
-import { CreateOrderItemDto } from '../dto/create-order-item.dto';
+import { AddOrderItemsDto } from '../dto/add-order-items.dto';
 
 @ApiBearerAuth()
 @Controller('order-items')
@@ -33,7 +33,7 @@ export class OrderItemController {
 
   @UseGuards(JwtAuthGuard)
   @Post()
-  create(@Body() orderItem: CreateOrderItemDto[]): Promise<OrderItem[]> {
+  create(@Body() orderItem: AddOrderItemsDto[]): Promise<OrderItem[]> {
     return this.orderItemsService.create(orderItem);
   }
 

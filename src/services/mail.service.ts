@@ -2,12 +2,13 @@ import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Mailgun from 'mailgun.js';
 import { Order } from '../entities/order.entity';
-import Handlebars from 'handlebars';
 import { createHash, randomUUID } from 'node:crypto';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
 import { performance } from 'node:perf_hooks';
-import { formatDate } from '../utils/formatDate';
+import { formatCurrency, formatDateTime } from '../i18n/format';
+import { DEFAULT_LOCALE, Locale } from '../i18n/locale';
+import { INVOICE_FILE_PREFIX, LOGIN_PATH, MAIL_SUBJECTS } from '../i18n/labels';
+import { OrderItemType } from '../enums/OrderItemType';
+import { renderMailTemplate } from './mail-templates';
 import * as FormData from 'form-data';
 import { User } from '../entities/user.entity';
 import { OrderType } from '../types/OrderType';
@@ -172,13 +173,13 @@ export class MailService implements OnModuleDestroy {
     });
   }
 
-  async sendMfaOtp(email: string, code: string): Promise<void> {
+  async sendMfaOtp(
+    email: string,
+    code: string,
+    locale: Locale = DEFAULT_LOCALE,
+  ): Promise<void> {
     const diagnostic = this.beginMailDiagnostic(email, code);
-    const templateSource = fs.readFileSync(
-      path.join(__dirname, '../../constants/mfa-otp.hbs'),
-      'utf8',
-    );
-    const html = Handlebars.compile(templateSource)({ code });
+    const html = renderMailTemplate('mfa-otp', locale, { code });
 
     if (diagnostic) {
       this.queueMailDiagnostic(diagnostic);
@@ -188,7 +189,7 @@ export class MailService implements OnModuleDestroy {
       const info = await this.smtp.sendMail({
         from: `Zielony Koszyk <${this.configService.get<string>('SMTP_FROM_EMAIL')}>`,
         to: email,
-        subject: 'Kod logowania do Zielonego Koszyka',
+        subject: MAIL_SUBJECTS[locale].mfaOtp,
         html,
         ...(diagnostic ? { messageId: `<${diagnostic.messageId}>` } : {}),
       });
@@ -317,12 +318,7 @@ export class MailService implements OnModuleDestroy {
     const domain = this.configService.get<string>('MAILGUN_DOMAIN');
     const fromEmail = this.configService.get<string>('MAILGUN_FROM_EMAIL');
 
-    // Read and compile the template
-    const templateSource = fs.readFileSync(
-      path.join(__dirname, '../../constants/order-confirmation.hbs'),
-      'utf8',
-    );
-    const template = Handlebars.compile(templateSource);
+    const { locale } = order;
 
     const customer_name =
       order.order_type === OrderType.COMPANY
@@ -334,29 +330,29 @@ export class MailService implements OnModuleDestroy {
     const preparedItems = order.orderItems.map((item) => ({
       product_name: item.product_name,
       quantity: item.quantity,
-      price: item.price,
-      isDelivery: item.product_name === 'Dostawa',
+      price: formatCurrency(item.price, locale),
+      isDelivery: item.item_type === OrderItemType.DELIVERY,
     }));
 
-    // Generate the email content
-    const html = template({
+    // Generate the email content in the language the order was placed in
+    const html = renderMailTemplate('order-confirmation', locale, {
       customer_name,
       order_id: order.order_id,
-      order_date: formatDate(order.order_date),
-      total_amount: order.total_amount,
+      order_date: formatDateTime(order.order_date, locale),
+      total_amount: formatCurrency(order.total_amount, locale),
       orderItems: preparedItems,
     });
 
     const attachment = {
       data: pdfBuffer,
-      filename: `Faktura_${order.order_id}.pdf`,
+      filename: `${INVOICE_FILE_PREFIX[locale]}_${order.order_id}.pdf`,
       contentType: 'application/pdf',
     };
 
     const data = {
       from: `Zielony Koszyk <${fromEmail}>`,
       to: order.customer_email,
-      subject: 'Potwierdzenie zamówienia',
+      subject: MAIL_SUBJECTS[locale].orderConfirmation,
       html, // Use the generated HTML
       attachment: [attachment],
     };
@@ -368,29 +364,26 @@ export class MailService implements OnModuleDestroy {
     }
   }
 
-  async sendEmailWithPassword(user: User, password: string): Promise<void> {
+  async sendEmailWithPassword(
+    user: User,
+    password: string,
+    locale: Locale = DEFAULT_LOCALE,
+  ): Promise<void> {
     const domain = this.configService.get<string>('MAILGUN_DOMAIN');
     const fromEmail = this.configService.get<string>('MAILGUN_FROM_EMAIL');
 
-    const templateSource = fs.readFileSync(
-      path.join(__dirname, '../../constants/welcome-email-created-user.hbs'),
-      'utf8',
-    );
-
-    const template = Handlebars.compile(templateSource);
-
-    const html = template({
+    const html = renderMailTemplate('welcome-email-created-user', locale, {
       customer_name: `${user.first_name} ${user.last_name}`,
       email: user.email,
       password: password,
-      login_url: 'http://localhost:3000/login',
+      login_url: `http://localhost:3000/${locale}/${LOGIN_PATH[locale]}`,
       contact_email: 'amokrzycki96@gmail.com',
     });
 
     const data = {
       from: `Zielony Koszyk <${fromEmail}>`,
       to: user.email,
-      subject: 'Witaj w Zielonym Koszyku!',
+      subject: MAIL_SUBJECTS[locale].welcome,
       html,
     };
 

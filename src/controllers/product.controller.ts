@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -14,8 +15,13 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { ProductService } from '../services/product.service';
-import { Product } from '../entities/product.entity';
-import { CreateProductDto } from '../dto/create-product.dto';
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
+import { CreateProductDto, UpdateProductDto } from '../dto/create-product.dto';
+import { ProductResponseDto } from '../dto/product-response.dto';
+import { RequestLocale } from '../i18n/request-locale.decorator';
+import { Locale } from '../i18n/locale';
+import { coded, ErrorCode } from '../errors/error-code';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { PageableProducts } from '../types/PageableProducts';
@@ -26,12 +32,13 @@ export class ProductController {
   constructor(private readonly productsService: ProductService) {}
 
   @Get()
-  getAll(): Promise<Product[]> {
-    return this.productsService.findAll();
+  getAll(@RequestLocale() locale: Locale): Promise<ProductResponseDto[]> {
+    return this.productsService.findAll(locale);
   }
 
   @Get('search')
   async searchProducts(
+    @RequestLocale() locale: Locale,
     @Query('search') search?: string,
     @Query('category') category?: string,
     @Query('priceMin') priceMin?: string,
@@ -51,6 +58,7 @@ export class ProductController {
     const validLimit = isNaN(limit) || limit < 1 ? 10 : limit;
 
     return await this.productsService.search({
+      locale,
       search,
       category,
       priceMin: minPrice,
@@ -62,35 +70,63 @@ export class ProductController {
     });
   }
 
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Get(':id/translations')
+  getTranslations(@Param('id', ParseIntPipe) id: number) {
+    return this.productsService.findTranslations(id);
+  }
+
   @Get(':id')
-  getOne(@Param('id') id: string): Promise<Product> {
-    return this.productsService.findOne(+id);
+  getOne(
+    @Param('id') id: string,
+    @RequestLocale() locale: Locale,
+  ): Promise<ProductResponseDto> {
+    return this.productsService.findOne(+id, locale);
   }
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Post()
   @UseInterceptors(FileInterceptor('file'))
-  create(
+  async create(
     @Body('product') productString: string,
+    @RequestLocale() locale: Locale,
     @UploadedFile() file?: Express.Multer.File,
-  ): Promise<Product> {
+  ): Promise<ProductResponseDto> {
     if (!productString) {
-      throw new NotFoundException('Product data not provided');
+      throw coded(
+        NotFoundException,
+        ErrorCode.PRODUCT_DATA_REQUIRED,
+        'Product data not provided',
+      );
     }
 
-    const product = JSON.parse(productString) as CreateProductDto;
-    return this.productsService.create(product, file);
+    let raw: unknown;
+    try {
+      raw = JSON.parse(productString);
+    } catch {
+      throw new BadRequestException('Product data is not valid JSON');
+    }
+    const product = plainToInstance(CreateProductDto, raw);
+    const errors = await validate(product);
+    if (errors.length > 0) {
+      throw new BadRequestException(
+        errors.flatMap((error) => Object.values(error.constraints ?? {})),
+      );
+    }
+    return this.productsService.create(product, locale, file);
   }
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Put(':id')
   update(
-    @Param('id') id: string,
-    @Body() product: Partial<Product>,
-  ): Promise<Product> {
-    return this.productsService.update(+id, product);
+    @Param('id', ParseIntPipe) id: number,
+    @Body() product: UpdateProductDto,
+    @RequestLocale() locale: Locale,
+  ): Promise<ProductResponseDto> {
+    return this.productsService.update(id, product, locale);
   }
 
   @ApiBearerAuth()
@@ -105,7 +141,8 @@ export class ProductController {
   async uploadImage(
     @Param('id', ParseIntPipe) id: number,
     @UploadedFile() file: Express.Multer.File,
+    @RequestLocale() locale: Locale,
   ) {
-    return await this.productsService.uploadProductImage(id, file);
+    return await this.productsService.uploadProductImage(id, file, locale);
   }
 }

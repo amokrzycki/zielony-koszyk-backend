@@ -13,6 +13,8 @@ import { OrderItem } from './order-item.entity';
 import { Exclude } from 'class-transformer';
 import { OrderType } from '../types/OrderType';
 import { Address } from './address.entity';
+import { DEFAULT_LOCALE, LOCALES, Locale } from '../i18n/locale';
+import { LOCALE_ENUM_NAME } from './product-translation.entity';
 
 @Entity('orders')
 export class Order {
@@ -55,6 +57,15 @@ export class Order {
 
   @Column({ type: 'enum', enum: Statuses })
   status: Statuses;
+
+  /** Language the order was placed in; invoices and e-mails for this order always use it. */
+  @Column({
+    type: 'enum',
+    enum: [...LOCALES],
+    enumName: LOCALE_ENUM_NAME,
+    default: DEFAULT_LOCALE,
+  })
+  locale: Locale;
 
   @OneToMany(() => OrderItem, (orderItem) => orderItem.order, {
     cascade: true,

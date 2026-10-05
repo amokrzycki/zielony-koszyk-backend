@@ -35,7 +35,9 @@ describe('Scenariusz: Rejestracja i logowanie użytkownika (e2e)', () => {
   });
 
   it('Powinno zarejestrować nowego użytkownika', async () => {
-    const response = await request(app.getHttpServer())
+    const response = await request(
+      app.getHttpServer() as Parameters<typeof request>[0],
+    )
       .post('/users/register')
       .send(userDto);
 
@@ -57,7 +59,9 @@ describe('Scenariusz: Rejestracja i logowanie użytkownika (e2e)', () => {
       zip: '39-305',
     };
 
-    const response = await request(app.getHttpServer())
+    const response = await request(
+      app.getHttpServer() as Parameters<typeof request>[0],
+    )
       .post('/users/register')
       .send(userDtoWithExistingEmail);
 
@@ -71,7 +75,9 @@ describe('Scenariusz: Rejestracja i logowanie użytkownika (e2e)', () => {
       password: userDto.password,
     };
 
-    const response = await request(app.getHttpServer())
+    const response = await request(
+      app.getHttpServer() as Parameters<typeof request>[0],
+    )
       .post('/auth/login')
       .send(credentials);
 
